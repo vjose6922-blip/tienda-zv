@@ -63,7 +63,7 @@ async function syncPendingActions() {
                 const response = await fetch(ADMIN_API, {
                     method: "POST",
                     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                    body: new URLSearchParams({ action: "create", ...action.data }).toString()
+body: new URLSearchParams({ action: "create", token: sessionStorage.getItem("admin_token") || "", ...action.data }).toString()
                 });
                 const result = await response.json();
                 success = result.ok === true;
@@ -73,7 +73,7 @@ async function syncPendingActions() {
                 const response = await fetch(ADMIN_API, {
                     method: "POST",
                     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                    body: new URLSearchParams({ action: "update", id: action.productId, ...action.data }).toString()
+body: new URLSearchParams({ action: "update", id: action.productId, token: sessionStorage.getItem("admin_token") || "", ...action.data }).toString()
                 });
                 const result = await response.json();
                 success = result.ok === true;
@@ -83,7 +83,7 @@ async function syncPendingActions() {
                 const response = await fetch(ADMIN_API, {
                     method: "POST",
                     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                    body: new URLSearchParams({ action: "delete", id: action.productId }).toString()
+body: new URLSearchParams({ action: "delete", id: action.productId, token: sessionStorage.getItem("admin_token") || "" }).toString()
                 });
                 const result = await response.json();
                 success = result.ok === true;
