@@ -2,8 +2,8 @@
   "name": "Z&R - Tienda de Moda",
   "short_name": "Z&R",
   "description": "Catálogo de moda con looks personalizados por clima",
-  "start_url": "/ZNR/index.html",
-  "scope": "/ZNR/",
+  "start_url": "/tienda-zvindex.html",
+  "scope": "/tienda-zv",
   "display": "standalone",
   "orientation": "portrait-primary",
   "theme_color": "#3b1f5f",
@@ -11,7 +11,7 @@
   "categories": ["shopping", "fashion"],
   "icons": [
     {
-      "src": "/ZNR/logo.svg",
+      "src": "/tienda-zvlogo.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
@@ -20,18 +20,18 @@
   "shortcuts": [
     {
       "name": "Inicio",
-      "url": "/ZNR/index.html",
-      "icons": [{ "src": "/ZNR/logo.svg", "sizes": "any" }]
+      "url": "/tienda-zvindex.html",
+      "icons": [{ "src": "/tienda-zvlogo.svg", "sizes": "any" }]
     },
     {
       "name": "Catálogo",
-      "url": "/ZNR/catalogo.html",
-      "icons": [{ "src": "/ZNR/logo.svg", "sizes": "any" }]
+      "url": "/tienda-zvcatalogo.html",
+      "icons": [{ "src": "/tienda-zvlogo.svg", "sizes": "any" }]
     },
     {
       "name": "Outfits",
-      "url": "/ZNR/outfit.html",
-      "icons": [{ "src": "/ZNR/logo.svg", "sizes": "any" }]
+      "url": "/tienda-zvoutfit.html",
+      "icons": [{ "src": "/tienda-zvlogo.svg", "sizes": "any" }]
     }
   ]
 }
