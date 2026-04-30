@@ -248,7 +248,7 @@ async function fetchWeatherData(coords = DEFAULT_COORDS) {
   
   try {
     
-    const url = `https:
+    const url = `https://wttr.in/${coords}?format=j1&lang=es`;
     const response = await fetch(url, { signal: controller.signal });
     clearTimeout(timeoutId);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
