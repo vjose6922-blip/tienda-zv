@@ -1712,7 +1712,7 @@ window.updateWishlistBadge = updateWishlistBadge;
 
 
 
-
+window.API_URL = API_URL;
 window.escapeHtml = escapeHtml;
 window.escapeAttr = escapeAttr;
 window.safeHtml = safeHtml;
