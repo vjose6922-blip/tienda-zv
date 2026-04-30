@@ -40,7 +40,7 @@ function addPendingAction(type, data, productId = null) {
 }
 
 
-const ADMIN_API = "https:
+const ADMIN_API = "https://script.google.com/macros/s/AKfycbzNshrt3zldBNiyoB8x36ktCEO02H0cKxebiTuK7UAbsgd5R9biaCW7W4ihm1aVOJG7ww/exec";
 
 async function syncPendingActions() {
     if (!navigator.onLine) {
