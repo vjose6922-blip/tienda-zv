@@ -466,7 +466,8 @@ function createProductCard(product) {
     .filter(Boolean);
 
   if (images.length === 0) {
-    images.push("https:
+        images.push("https://placehold.co/400x400/3b1f5f/white?text=Sin+Imagen");
+
   }
 
   images.forEach((url) => {
