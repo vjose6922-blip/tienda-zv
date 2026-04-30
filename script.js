@@ -834,7 +834,8 @@ function startSilentPolling(requestId, clientPhone) {
         let cleanPhone = String(clientPhone).replace(/[^0-9]/g, '');
         if (cleanPhone.length === 10) cleanPhone = "52" + cleanPhone;
         
-        window.open(`https:
+        const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+window.open(whatsappUrl, '_blank');
         localStorage.removeItem('pending_purchase_' + requestId);
         
         
