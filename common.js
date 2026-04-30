@@ -1097,8 +1097,8 @@ async function registerServiceWorker() {
   }
   
   try {
-    const registration = await navigator.serviceWorker.register('/tienda-zvsw.js', {
-      scope: '/tienda-zv'
+    const registration = await navigator.serviceWorker.register('/tienda-zv/sw.js', {
+      scope: '/tienda-zv/'
     });
     console.log('✅ Service Worker registrado:', registration.scope);
     
