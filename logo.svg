@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff4f81"/>
+      <stop offset="100%" style="stop-color:#ff7a4f"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Fondo morado (se mantiene) -->
+  <rect width="200" height="200" rx="45" fill="#3b1f5f"/>
+  
+  <!-- Texto Z&R con efecto brillo y más estilo -->
+  <text x="100" y="128" font-size="84" text-anchor="middle" fill="url(#grad)" 
+        font-family="'Trebuchet MS', 'Arial Black', Arial, sans-serif" 
+        font-weight="900" 
+        letter-spacing="3"
+        filter="url(#glow)">Z&amp;R</text>
+</svg>

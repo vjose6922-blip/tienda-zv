@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline';
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com;
+  connect-src 'self' https://script.google.com https://wttr.in;
+  font-src 'self';
+  frame-src 'none';
+  object-src 'none';
+  base-uri 'self';
+">
+  <title>Z&R - Outfits</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://script.google.com" crossorigin>
+  <link rel="preconnect" href="https://lh3.googleusercontent.com" crossorigin>
+  <link rel="dns-prefetch" href="https://script.google.com">
+  <link rel="dns-prefetch" href="https://lh3.googleusercontent.com">
+  <link rel="preload" href="styles.css" as="style">
+  <link rel="stylesheet" href="styles.css" />
+  <!-- PWA Meta Tags -->
+  <link rel="manifest" href="/ZNR/manifest.json">
+  <meta name="theme-color" content="#3b1f5f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Z&R">
+  <link rel="apple-touch-icon" href="/ZNR/logo.svg">
+  <meta name="mobile-web-app-capable" content="yes">
+</head>
+<body class="theme-aeromexico">
+  <div id="global-loader" class="global-loader hidden">
+    <div class="loader-spinner"></div>
+    <div class="loader-text">Cargando...</div>
+  </div>
+
+  <header class="app-header">
+    <div class="header-left">
+      <div class="logo-touch-area" id="secret-logo">
+        <span class="logo-mark">Z&R</span>
+      </div>
+      <div class="header-text">
+        <h1 class="app-title">Outfits</h1>
+        <p class="app-subtitle">Descubre Combinaciones</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="icon-button" id="layout-toggle-looks" aria-label="Cambiar layout">📱</button>
+      <button class="icon-button" id="refresh-looks" aria-label="Actualizar">⟳</button>
+    </div>
+  </header>
+
+  <div class="looks-nav" id="looks-nav-bg">
+    <div class="looks-nav-content">
+      <a href="index.html" class="icon-button" style="text-decoration: none; display: inline-flex; align-items: center;">🏠</a>
+      <a href="catalogo.html" class="looks-nav-link">📋 Catálogo</a>
+      <div id="weather-widget" class="weather-widget loading">
+        <span class="weather-icon">🌡️</span>
+        <span class="weather-text">Cargando clima...</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="looks-grid" id="looks-container"></div>
+
+  <button class="floating-cart" id="floating-cart-btn" aria-label="Ver carrito">
+    <span class="cart-icon">🛒</span>
+    <span class="cart-badge" id="cart-count">0</span>
+  </button>
+
+  <!-- Botón flotante de Wishlist para Looks -->
+  <button class="floating-wishlist" id="floating-wishlist-looks-btn" aria-label="Ver lista de deseos">
+    <span class="wishlist-icon">❤️</span>
+    <span class="wishlist-badge" id="wishlist-count-looks">0</span>
+  </button>
+
+  <!-- Wishlist Drawer para Looks -->
+  <aside class="cart-drawer" id="wishlist-looks-drawer" aria-hidden="true">
+    <div class="cart-header">
+      <h2>❤️ Looks favoritos</h2>
+      <button class="icon-button" id="close-wishlist-looks-btn" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="cart-body" id="wishlist-looks-container"></div>
+    <div class="cart-footer">
+      <button id="add-all-looks-to-cart" class="primary-button full-width" style="background: linear-gradient(135deg, #ff4f81, #ff7a4f);">
+        🛒 Agregar todos los looks al carrito
+      </button>
+    </div>
+  </aside>
+
+  <aside class="cart-drawer" id="cart-drawer" aria-hidden="true">
+    <div class="cart-header">
+      <h2>Tu carrito</h2>
+      <button class="icon-button" id="close-cart-btn" aria-label="Cerrar carrito">✕</button>
+    </div>
+    <div class="cart-body" id="cart-items-container"></div>
+    <div class="cart-footer">
+      <div class="cart-summary-row">
+        <span>Subtotal</span>
+        <span id="cart-subtotal">$0</span>
+      </div>
+      <div class="cart-summary-row total">
+        <span>Total</span>
+        <span id="cart-total">$0</span>
+      </div>
+      <div id="saved-phone-container" style="font-size: 11px; text-align: center; margin: 8px 0; color: #666; display: none;">
+        📱 Número guardado: <span id="saved-phone-display"></span>
+        <button id="change-phone-btn" style="background: none; border: none; color: #ff4f81; cursor: pointer; text-decoration: underline; margin-left: 5px;">Cambiar</button>
+      </div>
+      <button id="request-purchase-btn" class="primary-button full-width" style="background: linear-gradient(135deg, #25D366, #128C7E); margin-top: 8px;">
+        📝 Solicitar compra
+      </button>
+    </div>
+  </aside>
+
+  <div class="overlay" id="overlay" aria-hidden="true"></div>
+
+  <div class="image-modal" id="image-modal" aria-hidden="true">
+    <button class="icon-button close-image-modal" id="close-image-modal">✕</button>
+    <img id="image-modal-img" alt="Vista de producto" />
+  </div>
+
+ <script src="common.js" defer></script>
+<script src="cache-manager.js" defer></script>
+<script src="offline-manager.js" defer></script>
+<script src="looks.js" defer></script>
+
+  <script defer>
+let cartInitialized = false;
+
+document.addEventListener("DOMContentLoaded", () => {
+    console.log("🚀 Inicializando página con modales personalizados...");
+
+    window.changePhoneNumber = changePhoneNumber;
+    window.updateSavedPhoneDisplay = updateSavedPhoneDisplay;
+    window.openCartDrawer = openCartDrawer;
+    window.closeCartDrawer = closeCartDrawer;
+    window.renderCart = renderCart;
+    window.addToCart = addToCart;
+
+    const floatingCartBtn = document.getElementById("floating-cart-btn");
+    if (floatingCartBtn) {
+        const newBtn = floatingCartBtn.cloneNode(true);
+        floatingCartBtn.parentNode.replaceChild(newBtn, floatingCartBtn);
+        newBtn.addEventListener("click", () => {
+            console.log("🛒 Abriendo carrito");
+            if (typeof window.openCartDrawer === "function") {
+                window.openCartDrawer();
+            }
+        });
+    }
+
+    const closeCartBtn = document.getElementById("close-cart-btn");
+    if (closeCartBtn) {
+        const newBtn = closeCartBtn.cloneNode(true);
+        closeCartBtn.parentNode.replaceChild(newBtn, closeCartBtn);
+        newBtn.addEventListener("click", () => {
+            console.log("❌ Cerrando carrito");
+            if (typeof window.closeCartDrawer === "function") {
+                window.closeCartDrawer();
+            }
+        });
+    }
+
+    const overlay = document.getElementById("overlay");
+    if (overlay) {
+        const newOverlay = overlay.cloneNode(true);
+        overlay.parentNode.replaceChild(newOverlay, overlay);
+        newOverlay.addEventListener("click", () => {
+            if (typeof window.closeCartDrawer === "function") {
+                window.closeCartDrawer();
+            }
+            if (typeof window.closeWishlistDrawer === "function") {
+                window.closeWishlistDrawer();
+            }
+            const looksDrawer = document.getElementById("wishlist-looks-drawer");
+            if (looksDrawer) looksDrawer.classList.remove("open");
+            if (typeof closeImageModal === "function") {
+                closeImageModal();
+            }
+            newOverlay.classList.remove("visible");
+        });
+    }
+
+    if (!cartInitialized) {
+        if (typeof loadCartFromStorage === "function") loadCartFromStorage();
+        if (typeof renderCart === "function") renderCart();
+        if (typeof updateSavedPhoneDisplay === "function") updateSavedPhoneDisplay();
+        cartInitialized = true;
+    }
+});
+
+window.addEventListener("cartUpdated", () => {
+    if (typeof renderCart === "function") renderCart();
+    if (typeof updateCartBadge === "function") updateCartBadge();
+});
+
+// Wishlist loo
+const floatingWishlistLooksBtn = document.getElementById("floating-wishlist-looks-btn");
+if (floatingWishlistLooksBtn) {
+  floatingWishlistLooksBtn.addEventListener("click", () => {
+    const drawer = document.getElementById("wishlist-looks-drawer");
+    const overlay = document.getElementById("overlay");
+    if (drawer) drawer.classList.add("open");
+    if (overlay) overlay.classList.add("visible");
+    if (typeof renderWishlistLooks === 'function') renderWishlistLooks();
+  });
+}
+
+const closeWishlistLooksBtn = document.getElementById("close-wishlist-looks-btn");
+if (closeWishlistLooksBtn) {
+  closeWishlistLooksBtn.addEventListener("click", () => {
+    const drawer = document.getElementById("wishlist-looks-drawer");
+    const overlay = document.getElementById("overlay");
+    if (drawer) drawer.classList.remove("open");
+    if (overlay) overlay.classList.remove("visible");
+  });
+}
+
+const addAllLooksToCartBtn = document.getElementById("add-all-looks-to-cart");
+if (addAllLooksToCartBtn) {
+  addAllLooksToCartBtn.addEventListener("click", () => {
+    const wishlistIds = JSON.parse(localStorage.getItem('zr_looks_wishlist') || '[]');
+    wishlistIds.forEach(lookId => addLookToCart(lookId));
+    showTemporaryMessage("✅ Todos los looks agregados al carrito", "success");
+  });
+}
+
+function updateLooksWishlistBadge() {
+    const count = JSON.parse(localStorage.getItem('zr_looks_wishlist') || '[]').length;
+    const badge = document.getElementById("wishlist-count-looks");
+    if (badge) badge.textContent = count;
+}
+
+updateLooksWishlistBadge();
+window.addEventListener('storage', (e) => {
+    if (e.key === 'zr_looks_wishlist') updateLooksWishlistBadge();
+});
+  </script>
+
+  <footer class="app-footer">
+    <div class="footer-content">
+      <div class="footer-logo">
+        <span class="logo-mark">Z&R</span>
+      </div>
+      <div class="footer-social">
+        <a href="https://www.facebook.com/tu_pagina" target="_blank" rel="noopener noreferrer" class="social-link" aria-label="Facebook">Facebook</a>
+      </div>
+      <div class="footer-copyright">
+        <p>© 2026 Z&R - Todos los derechos reservados</p>
+      </div>
+    </div>
+  </footer>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

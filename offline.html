@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline';
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data:;
+  connect-src 'none';
+  frame-src 'none';
+  object-src 'none';
+  base-uri 'self';
+">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- PWA Meta Tags -->
+<link rel="manifest" href="/ZNR/manifest.json">
+<meta name="theme-color" content="#3b1f5f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Z&R">
+<link rel="apple-touch-icon" href="/ZNR/logo.svg">
+<meta name="mobile-web-app-capable" content="yes">
+  <title>Z&R - Modo Offline</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #3b1f5f 0%, #1a0f2e 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .offline-container {
+      background: white;
+      border-radius: 32px;
+      max-width: 400px;
+      width: 100%;
+      padding: 40px 24px;
+      text-align: center;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+      animation: fadeIn 0.5s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .offline-icon {
+      font-size: 80px;
+      margin-bottom: 20px;
+    }
+    
+    h1 {
+      color: #3b1f5f;
+      margin-bottom: 12px;
+      font-size: 28px;
+    }
+    
+    p {
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+    
+    .info-box {
+      background: #f5f5f8;
+      border-radius: 16px;
+      padding: 16px;
+      margin: 24px 0;
+      text-align: left;
+    }
+    
+    .info-box h3 {
+      color: #3b1f5f;
+      margin-bottom: 12px;
+      font-size: 16px;
+    }
+    
+    .info-box ul {
+      margin-left: 20px;
+      color: #555;
+      font-size: 14px;
+    }
+    
+    .info-box li {
+      margin: 8px 0;
+    }
+    
+    .retry-btn {
+      background: linear-gradient(135deg, #ff4f81, #ff7a4f);
+      border: none;
+      color: white;
+      padding: 14px 28px;
+      border-radius: 40px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .retry-btn:active {
+      transform: scale(0.98);
+    }
+    
+    .offline-badge {
+      display: inline-block;
+      background: #ffebee;
+      color: #c62828;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="offline-container">
+    <div class="offline-icon">📡</div>
+    <h1>Sin conexión a internet</h1>
+    <p>No se pudo cargar la página porque no hay conexión.</p>
+    
+    <div class="info-box">
+      <h3>💡 Mientras esperas:</h3>
+      <ul>
+        <li>✓ Revisa tu conexión WiFi o datos móviles</li>
+        <li>✓ Los productos que ya viste antes están guardados</li>
+        <li>✓ Una vez que vuelvas a internet, todo funcionará normalmente</li>
+      </ul>
+    </div>
+    
+    <button class="retry-btn" onclick="location.reload()">
+      🔄 Reintentar conexión
+    </button>
+    
+    <div class="offline-badge">
+      ⚡ Modo offline
+    </div>
+  </div>
+</body>
+</html>
