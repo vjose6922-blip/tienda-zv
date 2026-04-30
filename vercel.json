@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/tienda-zv/sw.js",
+      "destination": "/sw.js"
+    },
+    {
+      "source": "/tienda-zv/manifest.json",
+      "destination": "/manifest.json"
+    }
+  ]
+}
