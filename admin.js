@@ -22,7 +22,7 @@ setTimeout(() => {
 
 }, 100);
 
-const ADMIN_API_URL = "https:
+const ADMIN_API_URL = "https://script.google.com/macros/s/AKfycbzNshrt3zldBNiyoB8x36ktCEO02H0cKxebiTuK7UAbsgd5R9biaCW7W4ihm1aVOJG7ww/exec";
 
 let adminSession = null;
 
