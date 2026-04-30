@@ -548,7 +548,7 @@ async function removeOutOfStockNotifications(requestId) {
   try {
     const response = await fetch(API_URL, {
       method: "POST",
-      body: JSON.stringify({ action: "removeOutOfStockNotifications", requestId: requestId })
+body: JSON.stringify({ action: "removeOutOfStockNotifications", requestId: requestId, token: sessionStorage.getItem("admin_token") || "" })
     });
     const data = await response.json();
     
@@ -574,7 +574,7 @@ async function confirmGroupPurchase(requestId) {
   try {
     const response = await fetch(API_URL, {
       method: "POST",
-      body: JSON.stringify({ action: "confirmGroupPurchase", requestId: requestId })
+body: JSON.stringify({ action: "confirmGroupPurchase", requestId: requestId, token: sessionStorage.getItem("admin_token") || "" })
     });
     const data = await response.json();
     
@@ -613,7 +613,8 @@ async function cancelGroupPurchase(requestId) {
   try {
     const response = await fetch(API_URL, {
       method: "POST",
-      body: JSON.stringify({ action: "cancelGroupPurchase", requestId: requestId })
+body: JSON.stringify({ action: "cancelGroupPurchase", requestId: requestId, token: sessionStorage.getItem("admin_token") || "" })
+
     });
     const data = await response.json();
     
