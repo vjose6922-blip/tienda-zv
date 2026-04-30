@@ -473,7 +473,7 @@
   z-index: 99999;
   font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
   font-size: 12px;
-  display: none;
+  display: flex;
   flex-direction: column;
   border: 1px solid #3a3a4a;
 ">
@@ -497,7 +497,15 @@
         cursor: pointer;
         margin-right: 8px;
         font-size: 14px;
-      ">🗑️</button>
+      " title="Limpiar consola">🗑️</button>
+      <button id="console-sw-clear" style="
+        background: none;
+        border: none;
+        color: #e06c75;
+        cursor: pointer;
+        margin-right: 8px;
+        font-size: 12px;
+      " title="Eliminar Service Worker">🔧</button>
       <button id="console-close" style="
         background: none;
         border: none;
@@ -595,6 +603,49 @@
   // Limpiar
   document.getElementById('console-clear').onclick = () => {
     outputDiv.innerHTML = '';
+  };
+  
+  // Función para eliminar Service Worker
+  async function clearServiceWorkers() {
+    try {
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        
+        if (registrations.length === 0) {
+          addLog('ℹ️ No hay Service Workers registrados', 'info');
+          return;
+        }
+        
+        for (let registration of registrations) {
+          await registration.unregister();
+          addLog(`✅ Service Worker desregistrado: ${registration.scope}`, 'success');
+        }
+        
+        // Forzar recarga de recursos sin caché
+        if (registrations.length > 0) {
+          addLog('🔄 Service Worker eliminado. Se recomienda recargar la página (F5) para limpiar cachés residuales', 'warn');
+          
+          // Opcional: Limpiar cachés
+          if ('caches' in window) {
+            const cacheNames = await caches.keys();
+            for (let cacheName of cacheNames) {
+              await caches.delete(cacheName);
+              addLog(`🗑️ Cache eliminado: ${cacheName}`, 'success');
+            }
+          }
+        }
+      } else {
+        addLog('⚠️ Service Workers no soportados en este navegador', 'warn');
+      }
+    } catch (error) {
+      addLog(`❌ Error al eliminar Service Worker: ${error.message}`, 'error');
+    }
+  }
+  
+  // Botón para eliminar Service Worker
+  document.getElementById('console-sw-clear').onclick = async () => {
+    addLog('🔧 Iniciando limpieza de Service Workers...', 'info');
+    await clearServiceWorkers();
   };
   
   // Agregar mensaje a la consola
@@ -723,10 +774,23 @@
     document.body.style.userSelect = '';
   };
   
+  // Verificar Service Workers al inicio
+  setTimeout(async () => {
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      if (registrations.length > 0) {
+        addLog(`⚠️ Hay ${registrations.length} Service Worker(s) activos. Usa 🔧 para eliminarlos`, 'warn');
+      } else {
+        addLog('✅ No hay Service Workers activos', 'success');
+      }
+    }
+  }, 500);
+  
   // Mostrar bienvenida
-  addLog('🐛 Debug Console v1.0 - Lista para depurar', 'success');
+  addLog('🐛 Debug Console v2.0 - Lista para depurar', 'success');
   addLog('📌 Escribe JavaScript para inspeccionar variables', 'info');
   addLog('📌 Variables disponibles: allProducts, localCart, adminProducts', 'info');
+  addLog('🔧 Botón 🔧 para eliminar Service Workers y limpiar cachés', 'info');
 })();
 </script>
 
