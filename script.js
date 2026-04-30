@@ -738,7 +738,7 @@ async function continueCheckout() {
   adminMessage += "━━━━━━━━━━━━━━━━━━━━\n";
   adminMessage += "Una vez confirmado tu pedido te enviaremos un mensaje por este chat.\n";
   
-  const whatsappAdminUrl = `https:
+  const whatsappAdminUrl = "https://wa.me/521234567890?text=" + encodeURIComponent(adminMessage);
   window.open(whatsappAdminUrl, '_blank');
   
   try {
