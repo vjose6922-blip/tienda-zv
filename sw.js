@@ -5,25 +5,25 @@
 
 const CACHE_NAME = 'zr-cache-v3';
 const DYNAMIC_CACHE = 'zr-dynamic-v3';
-const OFFLINE_URL = '/ZNR/offline.html';
+const OFFLINE_URL = '/tienda-zv/offline.html';
 
 // Recursos estáticos que siempre deben estar en caché
 const STATIC_ASSETS = [
-  '/ZNR/',
-  '/ZNR/index.html',
-  '/ZNR/catalogo.html',
-  '/ZNR/outfit.html',
-  '/ZNR/admin.html',
-  '/ZNR/notificaciones.html',
-  '/ZNR/offline.html',
-  '/ZNR/styles.css',
-  '/ZNR/common.js',
-  '/ZNR/script.js',
-  '/ZNR/looks.js',
-  '/ZNR/home.js',
-  '/ZNR/admin.js',
-  '/ZNR/cache-manager.js',
-  '/ZNR/manifest.json'
+  '/tienda-zv/',
+  '/tienda-zv/index.html',
+  '/tienda-zv/catalogo.html',
+  '/tienda-zv/outfit.html',
+  '/tienda-zv/admin.html',
+  '/tienda-zv/notificaciones.html',
+  '/tienda-zv/offline.html',
+  '/tienda-zv/styles.css',
+  '/tienda-zv/common.js',
+  '/tienda-zv/script.js',
+  '/tienda-zv/looks.js',
+  '/tienda-zv/home.js',
+  '/tienda-zv/admin.js',
+  '/tienda-zv/cache-manager.js',
+  '/tienda-zv/manifest.json'
 ];
 // Extensiones de imágenes para caché dinámico
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
@@ -246,11 +246,11 @@ self.addEventListener('push', event => {
   
   const options = {
     body: data.body || '¡Novedades en Z&R!',
-    icon: '/ZNR/icons/icon-192.png',
-    badge: '/ZNR/icons/icon-96.png',
+    icon: '/tienda-zv/icons/icon-192.png',
+    badge: '/tienda-zv/icons/icon-96.png',
     vibrate: [200, 100, 200],
     data: {
-      url: data.url || '/ZNR/'
+      url: data.url || '/tienda-zv/'
     },
     actions: [
       { action: 'open', title: 'Ver ahora' },
@@ -268,7 +268,7 @@ self.addEventListener('notificationclick', event => {
   event.notification.close();
   
   if (event.action === 'open' || !event.action) {
-    const urlToOpen = event.notification.data?.url || '/ZNR/';
+    const urlToOpen = event.notification.data?.url || '/tienda-zv/';
     event.waitUntil(
       self.clients.matchAll({ type: 'window', includeUncontrolled: true })
         .then(windowClients => {
@@ -312,7 +312,7 @@ async function updateProductsInBackground() {
     const cache = await caches.open(CACHE_NAME);
     const response = await fetch('https://script.google.com/macros/s/AKfycbzNshrt3zldBNiyoB8x36ktCEO02H0cKxebiTuK7UAbsgd5R9biaCW7W4ihm1aVOJG7ww/exec');
     if (response.ok) {
-      await cache.put('/ZNR/api/products', response.clone());
+      await cache.put('/tienda-zv/api/products', response.clone());
     }
   } catch (error) {
     console.log('[SW] Background sync falló:', error);
