@@ -54,11 +54,14 @@ async function apiRequest(method, body) {
     };
 
     if (method === "POST" && body) {
-      // Inyectar token automáticamente en todas las llamadas POST
-      const token = sessionStorage.getItem("admin_token") || "";
-      const params = new URLSearchParams({ ...body, token });
-      options.body = params.toString();
-    }
+  const savedToken = sessionStorage.getItem("admin_token") || "";
+  const params = new URLSearchParams({ ...body });
+  // Solo inyectar el token guardado si el body no trae uno ya
+  if (!body.token && savedToken) {
+    params.set("token", savedToken);
+  }
+  options.body = params.toString();
+}
 
     const res = await fetch(url, options);
     if (!res.ok) throw new Error("HTTP " + res.status);
