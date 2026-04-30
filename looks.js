@@ -78,7 +78,7 @@ function getImageUrl(fileId, size = 1200) {
   }
   
   
-  const url = `https:
+  const url = `https://lh3.googleusercontent.com/d/${fileId}=w${size}`;
   console.log('URL generada:', url);
   return url;
 }
