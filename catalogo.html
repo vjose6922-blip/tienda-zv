@@ -21,12 +21,12 @@
   <link rel="dns-prefetch" href="https:
   <link rel="preload" href="styles.css" as="style">
   <link rel="stylesheet" href="styles.css" />
-<link rel="manifest" href="/ZNR/manifest.json">
+<link rel="manifest" href="/tienda-zvmanifest.json">
 <meta name="theme-color" content="#3b1f5f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Z&R">
-<link rel="apple-touch-icon" href="/ZNR/logo.svg">
+<link rel="apple-touch-icon" href="/tienda-zvlogo.svg">
 <meta name="mobile-web-app-capable" content="yes">
 </head>
 <body class="theme-aeromexico">
@@ -148,7 +148,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/ZNR/sw.js')
+        navigator.serviceWorker.register('/tienda-zvsw.js')
           .then(registration => console.log('✅ SW registrado:', registration.scope))
           .catch(error => console.log('❌ Error SW:', error));
       });
