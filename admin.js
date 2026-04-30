@@ -926,7 +926,7 @@ function setupImageUpload(fileInputId, textInputId, previewId, progressId) {
 
       
 
-      const imageUrl = "https:
+      const imageUrl = "https://lh3.googleusercontent.com/d/" + json.id + "=w400-h400-c-rw";
 
       textInput.value = imageUrl;
 
