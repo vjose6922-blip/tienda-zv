@@ -716,7 +716,6 @@ function handleRemove(e) {
   }
 }
 
-};
 function openImageModal(url, productId = null) {
   const modal = document.getElementById("image-modal");
   const img = document.getElementById("image-modal-img");
