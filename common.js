@@ -1122,7 +1122,6 @@ window.openCartDrawer = openCartDrawer;
 window.closeCartDrawer = closeCartDrawer;
 window.renderCart = renderCart;
 window.addToCart = addToCart;
-window.removeFromCart = removeFromCart;
 window.escapeHtml = escapeHtml;
 
 
