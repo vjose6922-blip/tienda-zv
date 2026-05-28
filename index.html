@@ -2,230 +2,989 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Mobile Emulator Fixed</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mobile DevTool — Emulador</title>
 <style>
-body{
-  margin:0;
-  font-family:Arial;
-  background:#0f0f14;
-  color:white;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  padding:20px;
-}
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;800&display=swap');
 
-.topbar{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  margin-bottom:10px;
-}
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-button{
-  padding:10px;
-  border:0;
-  border-radius:8px;
-  cursor:pointer;
-  background:#2a2a3a;
-  color:white;
-}
+  :root {
+    --bg: #0a0a0f;
+    --panel: #111118;
+    --border: #1e1e2e;
+    --accent: #7c3aed;
+    --accent2: #06b6d4;
+    --green: #10b981;
+    --yellow: #f59e0b;
+    --red: #ef4444;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --device-w: 1080px;
+    --device-h: 2340px;
+    --scale: 0.32;
+  }
 
-input{
-  color:white;
-}
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    overflow: hidden;
+  }
 
-.status{
-  font-size:14px;
-  opacity:.8;
-  margin-bottom:10px;
-}
+  /* ── LAYOUT ── */
+  .root {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    grid-template-rows: 48px 1fr;
+    height: 100vh;
+    gap: 0;
+  }
 
-.device{
-  width:1080px;
-  height:2340px;
-  background:#111;
-  border-radius:40px;
-  padding:15px;
-  box-shadow:0 0 40px rgba(0,0,0,.7);
-  position:relative;
-}
+  /* ── TOPBAR ── */
+  .topbar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 20px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    z-index: 10;
+  }
+  .topbar-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 14px;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .topbar-logo span { color: var(--accent2); }
+  .topbar-sep { width: 1px; height: 24px; background: var(--border); }
 
-iframe{
-  width:1080px;
-  height:2340px;
-  border:0;
-  border-radius:30px;
-  background:white;
-}
+  .resolution-badge {
+    font-size: 11px;
+    color: var(--muted);
+    background: #1a1a2e;
+    border: 1px solid var(--border);
+    padding: 3px 10px;
+    border-radius: 4px;
+  }
+  .resolution-badge b { color: var(--accent2); }
+
+  .topbar-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  
+  .btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 5px 14px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #6d28d9; }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--accent); }
+  .btn-danger { background: transparent; color: var(--red); border: 1px solid #3f1515; }
+  .btn-danger:hover { background: #1f0a0a; }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: background 0.3s;
+  }
+  .status-dot.active { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-section {
+    border-bottom: 1px solid var(--border);
+    padding: 14px 16px;
+  }
+  .sidebar-section:last-child { border-bottom: none; flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+  .section-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  /* Upload zone */
+  .upload-zone {
+    border: 1.5px dashed var(--border);
+    border-radius: 8px;
+    padding: 18px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: #1a0a2e22; }
+  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-zone .icon { font-size: 22px; margin-bottom: 6px; }
+  .upload-zone p { font-size: 10px; color: var(--muted); line-height: 1.5; }
+  .upload-zone p b { color: var(--accent2); }
+
+  /* File tree */
+  .file-tree { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+  .file-tree::-webkit-scrollbar { width: 4px; }
+  .file-tree::-webkit-scrollbar-track { background: transparent; }
+  .file-tree::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.1s;
+    font-size: 10px;
+    color: var(--muted);
+  }
+  .file-item:hover { background: #1a1a2e; color: var(--text); }
+  .file-item.active { background: #2d1b4e; color: var(--accent); }
+  .file-item.entry { color: var(--green); }
+  .file-icon { font-size: 12px; flex-shrink: 0; }
+  .file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-badge {
+    font-size: 8px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: #1a2e1a;
+    color: var(--green);
+    border: 1px solid #1a3a1a;
+    flex-shrink: 0;
+  }
+
+  .tree-empty {
+    font-size: 10px;
+    color: var(--muted);
+    text-align: center;
+    padding: 20px 8px;
+    line-height: 1.7;
+  }
+
+  /* Scale control */
+  .scale-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .scale-row label { font-size: 10px; color: var(--muted); flex-shrink: 0; }
+  .scale-row input[type=range] {
+    flex: 1;
+    accent-color: var(--accent);
+    height: 3px;
+  }
+  .scale-val { font-size: 10px; color: var(--accent2); width: 32px; text-align: right; }
+
+  /* ── MAIN STAGE ── */
+  .stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 24px 24px 0;
+    overflow: auto;
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 20% 20%, #1a0a3e18 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, #061a2e18 0%, transparent 50%);
+    position: relative;
+  }
+
+  /* Device frame */
+  .device-wrapper {
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .device-frame {
+    width: calc(var(--device-w) * var(--scale));
+    height: calc(var(--device-h) * var(--scale));
+    background: #0d0d0d;
+    border-radius: calc(60px * var(--scale));
+    border: calc(10px * var(--scale)) solid #1a1a1a;
+    box-shadow:
+      0 0 0 calc(2px * var(--scale)) #333,
+      0 30px 80px #00000088,
+      0 0 120px #7c3aed22;
+    position: relative;
+    overflow: hidden;
+    transition: width 0.3s, height 0.3s, border-radius 0.3s;
+  }
+
+  /* Notch */
+  .device-notch {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(220px * var(--scale));
+    height: calc(36px * var(--scale));
+    background: #0d0d0d;
+    border-radius: 0 0 calc(20px * var(--scale)) calc(20px * var(--scale));
+    z-index: 10;
+  }
+
+  /* Status bar overlay */
+  .device-statusbar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: calc(44px * var(--scale));
+    z-index: 9;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 calc(20px * var(--scale)) 0 calc(20px * var(--scale));
+    pointer-events: none;
+    background: linear-gradient(to bottom, #00000066 0%, transparent 100%);
+    font-size: calc(10px * var(--scale));
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+  }
+  .sb-time { font-weight: 600; }
+  .sb-icons { display: flex; gap: calc(4px * var(--scale)); align-items: center; }
+
+  /* iframe container */
+  .device-screen {
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    overflow: hidden;
+    position: relative;
+    background: #fff;
+  }
+
+  .device-iframe {
+    border: none;
+    width: var(--device-w);
+    height: var(--device-h);
+    transform-origin: top left;
+    transform: scale(var(--scale));
+    display: block;
+    background: #fff;
+  }
+
+  /* Empty state overlay */
+  .empty-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #0f0f1a;
+    z-index: 5;
+    gap: 12px;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .empty-overlay.hidden { opacity: 0; }
+  .empty-overlay .big-icon { font-size: calc(48px * var(--scale)); }
+  .empty-overlay p { font-size: calc(11px * var(--scale)); color: var(--muted); text-align: center; line-height: 1.6; }
+
+  /* Device side buttons */
+  .btn-side {
+    position: absolute;
+    background: #222;
+    border-radius: 2px;
+    right: calc(-14px * var(--scale));
+    box-shadow: 2px 0 4px #00000066;
+  }
+  .btn-power { width: calc(4px * var(--scale)); height: calc(70px * var(--scale)); top: calc(200px * var(--scale)); }
+  .btn-vol1 { width: calc(4px * var(--scale)); height: calc(60px * var(--scale)); top: calc(160px * var(--scale)); left: calc(-14px * var(--scale)); right: auto; }
+  .btn-vol2 { width: calc(4px * var(--scale)); height: calc(60px * var(--scale)); top: calc(235px * var(--scale)); left: calc(-14px * var(--scale)); right: auto; }
+
+  /* ── CONSOLE ── */
+  .console-panel {
+    width: 100%;
+    max-height: 180px;
+    background: #08080f;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  .console-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+  .console-header span { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+  .console-log-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 14px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .log-line {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    font-size: 10px;
+    line-height: 1.7;
+    border-bottom: 1px solid #111;
+    padding: 1px 0;
+  }
+  .log-ts { color: #334; flex-shrink: 0; }
+  .log-type { width: 42px; flex-shrink: 0; text-transform: uppercase; font-size: 9px; font-weight: 700; }
+  .log-type.info { color: var(--accent2); }
+  .log-type.warn { color: var(--yellow); }
+  .log-type.error { color: var(--red); }
+  .log-type.ok { color: var(--green); }
+  .log-msg { color: #94a3b8; word-break: break-all; }
+
+  /* ── RIGHT PANEL ── */
+  .right-col {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Scrollbar global */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* File count badge */
+  .count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 16px;
+    padding: 0 5px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    border-radius: 10px;
+    margin-left: 6px;
+  }
+
+  .entry-hint {
+    font-size: 9px;
+    color: var(--yellow);
+    margin-top: 6px;
+    line-height: 1.5;
+    display: none;
+  }
+
+  /* Reload btn */
+  .reload-row { display: flex; gap: 6px; margin-top: 10px; }
+
+  /* Progress bar */
+  .progress-bar {
+    height: 2px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 6px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    width: 0%;
+    transition: width 0.2s;
+    border-radius: 2px;
+  }
 </style>
 </head>
-
 <body>
+<div class="root">
 
-<h2>📱 Emulator FIX 1080x2340</h2>
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-logo">Mobile<span>Dev</span>Tool</div>
+    <div class="topbar-sep"></div>
+    <div class="resolution-badge"><b>1080</b> × <b>2340</b> px · Android</div>
+    <div class="topbar-sep"></div>
+    <div class="status-dot" id="statusDot"></div>
+    <span style="font-size:10px;color:var(--muted)" id="statusText">Sin proyecto</span>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost" onclick="reloadDevice()" title="Recargar iframe">⟳ Recargar</button>
+      <button class="btn btn-danger" onclick="clearAll()">✕ Limpiar</button>
+    </div>
+  </header>
 
-<div class="topbar">
-  <input type="file" id="zipInput" accept=".zip">
-  <input type="file" id="multiInput" multiple webkitdirectory>
-  <button onclick="resetAll()">Reset</button>
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <!-- Upload -->
+    <div class="sidebar-section">
+      <div class="section-label">Subir archivos del proyecto</div>
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" multiple accept="*/*" onchange="handleFiles(this.files)">
+        <div class="icon">📁</div>
+        <p>Arrastra o haz clic<br><b>Selecciona todos tus archivos</b><br><span style="font-size:9px">(HTML, CSS, JS, imágenes, etc.)</span></p>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="entry-hint" id="entryHint">⚠ Selecciona el archivo de entrada (HTML principal)</div>
+    </div>
+
+    <!-- Scale -->
+    <div class="sidebar-section">
+      <div class="section-label">Escala del dispositivo</div>
+      <div class="scale-row">
+        <label>Zoom</label>
+        <input type="range" id="scaleRange" min="15" max="60" value="32" oninput="updateScale(this.value)">
+        <span class="scale-val" id="scaleVal">32%</span>
+      </div>
+    </div>
+
+    <!-- File tree -->
+    <div class="sidebar-section">
+      <div class="section-label">
+        Archivos cargados
+        <span class="count-badge" id="fileCount">0</span>
+      </div>
+      <div class="file-tree" id="fileTree">
+        <div class="tree-empty">Sube tus archivos<br>para comenzar</div>
+      </div>
+      <div class="reload-row">
+        <button class="btn btn-primary" style="flex:1" onclick="launchProject()">▶ Ejecutar</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN (device + console) -->
+  <div class="right-col">
+    <div class="stage" id="stage">
+      <div class="device-wrapper" id="deviceWrapper">
+        <div class="device-frame" id="deviceFrame">
+          <!-- Side buttons -->
+          <div class="btn-side btn-power"></div>
+          <div class="btn-side btn-vol1"></div>
+          <div class="btn-side btn-vol2"></div>
+          <!-- Notch -->
+          <div class="device-notch"></div>
+          <!-- Status bar -->
+          <div class="device-statusbar">
+            <span class="sb-time" id="sbTime">12:00</span>
+            <div class="sb-icons">
+              <svg width="12" height="9" viewBox="0 0 12 9" fill="white"><rect x="0" y="4" width="2" height="5" rx="0.5"/><rect x="3" y="2.5" width="2" height="6.5" rx="0.5"/><rect x="6" y="1" width="2" height="8" rx="0.5"/><rect x="9" y="0" width="2" height="9" rx="0.5" opacity="0.3"/></svg>
+              <svg width="10" height="9" viewBox="0 0 10 9" fill="white"><path d="M5 2.5C3.3 2.5 1.8 3.2.8 4.3L0 3.4C1.2 2.1 2.9 1.3 5 1.3s3.8.8 5 2.1l-.8.9C8.2 3.2 6.7 2.5 5 2.5z"/><path d="M5 5C3.9 5 2.9 5.4 2.2 6.2L1.4 5.3C2.3 4.3 3.6 3.7 5 3.7s2.7.6 3.6 1.6L7.8 6.2C7.1 5.4 6.1 5 5 5z"/><circle cx="5" cy="8" r="1"/></svg>
+              <svg width="18" height="9" viewBox="0 0 18 9" fill="none"><rect x="0.5" y="0.5" width="15" height="8" rx="1.5" stroke="white" stroke-opacity="0.35"/><rect x="1" y="1" width="12" height="7" rx="1" fill="white"/><path d="M17 3v3a1.5 1.5 0 000-3z" fill="white" fill-opacity="0.4"/></svg>
+            </div>
+          </div>
+          <!-- Screen -->
+          <div class="device-screen">
+            <div class="empty-overlay" id="emptyOverlay">
+              <div class="big-icon">📱</div>
+              <p>Sube tus archivos y<br>presiona <b>▶ Ejecutar</b></p>
+            </div>
+            <iframe id="deviceIframe" class="device-iframe" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"></iframe>
+          </div>
+        </div>
+      </div>
+
+      <!-- Console -->
+      <div class="console-panel">
+        <div class="console-header">
+          <span>Consola</span>
+          <button class="btn btn-ghost" style="margin-left:auto;padding:2px 8px;font-size:9px" onclick="clearConsole()">Limpiar</button>
+        </div>
+        <div class="console-log-area" id="consoleArea"></div>
+      </div>
+    </div>
+  </div>
 </div>
-
-<div class="status" id="status">Esperando archivos...</div>
-
-<div class="device">
-  <iframe id="screen"></iframe>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <script>
-let fileMap = {};
-let swReg = null;
+/* ════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════ */
+const state = {
+  files: new Map(),      // filename → { name, blob, url, type }
+  entryFile: null,
+  blobUrls: [],
+};
 
-const statusEl = document.getElementById("status");
-const iframe = document.getElementById("screen");
+/* ════════════════════════════════════════════
+   CLOCK
+════════════════════════════════════════════ */
+function updateClock() {
+  const now = new Date();
+  document.getElementById('sbTime').textContent =
+    now.getHours().toString().padStart(2,'0') + ':' +
+    now.getMinutes().toString().padStart(2,'0');
+}
+updateClock();
+setInterval(updateClock, 10000);
 
-/* ---------------- SW ---------------- */
-function makeSW(){
-const code = `
-let files = {};
-
-self.addEventListener('message', e=>{
-  if(e.data.type==='FILES'){
-    files = e.data.files;
-  }
-});
-
-function mime(p){
-  if(p.endsWith('.html')) return 'text/html';
-  if(p.endsWith('.css')) return 'text/css';
-  if(p.endsWith('.js')) return 'application/javascript';
-  if(p.endsWith('.png')) return 'image/png';
-  if(p.endsWith('.jpg')) return 'image/jpeg';
-  return 'text/plain';
+/* ════════════════════════════════════════════
+   SCALE
+════════════════════════════════════════════ */
+function updateScale(v) {
+  const scale = v / 100;
+  document.documentElement.style.setProperty('--scale', scale);
+  document.getElementById('scaleVal').textContent = v + '%';
 }
 
-self.addEventListener('fetch', e=>{
-  let url = new URL(e.request.url);
-  let path = url.pathname;
+/* ════════════════════════════════════════════
+   DRAG & DROP
+════════════════════════════════════════════ */
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('drag');
+  handleFiles(e.dataTransfer.files);
+});
 
-  if(path === '/') path = '/index.html';
+/* ════════════════════════════════════════════
+   FILE HANDLING
+════════════════════════════════════════════ */
+function getFileIcon(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  const map = { html:'🌐', htm:'🌐', css:'🎨', js:'⚙️', mjs:'⚙️', ts:'⚙️',
+    png:'🖼', jpg:'🖼', jpeg:'🖼', gif:'🖼', svg:'🖼', webp:'🖼', ico:'🖼',
+    json:'📋', woff:'🔤', woff2:'🔤', ttf:'🔤', otf:'🔤', eot:'🔤',
+    mp4:'🎬', webm:'🎬', mp3:'🎵', ogg:'🎵', pdf:'📄' };
+  return map[ext] || '📄';
+}
 
-  if(files[path]){
-    e.respondWith(new Response(files[path],{
-      headers:{'Content-Type':mime(path)}
-    }));
+function getMime(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  const map = {
+    html:'text/html', htm:'text/html', css:'text/css',
+    js:'application/javascript', mjs:'application/javascript',
+    json:'application/json', svg:'image/svg+xml',
+    png:'image/png', jpg:'image/jpeg', jpeg:'image/jpeg',
+    gif:'image/gif', webp:'image/webp', ico:'image/x-icon',
+    woff:'font/woff', woff2:'font/woff2', ttf:'font/ttf', otf:'font/otf',
+    mp4:'video/mp4', webm:'video/webm', mp3:'audio/mpeg', ogg:'audio/ogg',
+    pdf:'application/pdf',
+  };
+  return map[ext] || 'application/octet-stream';
+}
+
+async function handleFiles(fileList) {
+  const files = Array.from(fileList);
+  if (!files.length) return;
+
+  const fill = document.getElementById('progressFill');
+  fill.style.width = '0%';
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    // Normalize path: strip leading / or ./
+    const rawName = (file.webkitRelativePath || file.name).replace(/^\.?\//, '');
+    
+    // Revoke old URL if exists
+    if (state.files.has(rawName)) {
+      URL.revokeObjectURL(state.files.get(rawName).url);
+    }
+
+    const mime = getMime(rawName);
+    let blob;
+
+    // For text-based files, we'll patch URLs after loading
+    const isText = /^(text\/|application\/(javascript|json))/.test(mime) || rawName.endsWith('.html') || rawName.endsWith('.htm') || rawName.endsWith('.css');
+
+    if (isText) {
+      const text = await readAsText(file);
+      blob = new Blob([text], { type: mime });
+    } else {
+      blob = file.slice(0, file.size, mime);
+    }
+
+    const url = URL.createObjectURL(blob);
+    state.files.set(rawName, { name: rawName, blob, url, type: mime, rawText: isText ? await readAsText(file) : null });
+    fill.style.width = ((i + 1) / files.length * 100) + '%';
+  }
+
+  setTimeout(() => fill.style.width = '0%', 800);
+
+  // Auto-detect entry
+  detectEntry();
+  renderTree();
+  log('ok', `${files.length} archivo(s) cargado(s)`);
+}
+
+function readAsText(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = rej;
+    r.readAsText(file);
+  });
+}
+
+function detectEntry() {
+  const priorities = ['index.html', 'index.htm', 'main.html'];
+  for (const p of priorities) {
+    if (state.files.has(p)) { state.entryFile = p; return; }
+  }
+  // Any html
+  for (const [name] of state.files) {
+    if (name.endsWith('.html') || name.endsWith('.htm')) {
+      state.entryFile = name;
+      return;
+    }
+  }
+  state.entryFile = null;
+}
+
+/* ════════════════════════════════════════════
+   RENDER TREE
+════════════════════════════════════════════ */
+function renderTree() {
+  const tree = document.getElementById('fileTree');
+  const count = state.files.size;
+  document.getElementById('fileCount').textContent = count;
+
+  if (count === 0) {
+    tree.innerHTML = '<div class="tree-empty">Sube tus archivos<br>para comenzar</div>';
     return;
   }
 
-  e.respondWith(new Response("404 "+path,{status:404}));
-});
-`;
+  const hint = document.getElementById('entryHint');
+  hint.style.display = state.entryFile ? 'none' : 'block';
 
-return URL.createObjectURL(new Blob([code],{type:"application/javascript"}));
-}
-
-/* ---------------- SW REGISTER ---------------- */
-async function registerSW(){
-  const swUrl = makeSW();
-
-  if(swReg){
-    await swReg.unregister();
-  }
-
-  swReg = await navigator.serviceWorker.register(swUrl);
-  await navigator.serviceWorker.ready;
-
-  navigator.serviceWorker.controller?.postMessage({
-    type:"FILES",
-    files:fileMap
+  tree.innerHTML = '';
+  const sorted = [...state.files.keys()].sort((a, b) => {
+    // HTML first
+    const aH = a.endsWith('.html'), bH = b.endsWith('.html');
+    if (aH && !bH) return -1;
+    if (!aH && bH) return 1;
+    return a.localeCompare(b);
   });
 
-  statusEl.innerText = "SW activo ✔";
+  for (const name of sorted) {
+    const item = document.createElement('div');
+    const isEntry = name === state.entryFile;
+    item.className = 'file-item' + (isEntry ? ' entry' : '');
+    item.innerHTML = `
+      <span class="file-icon">${getFileIcon(name)}</span>
+      <span class="file-name" title="${name}">${name}</span>
+      ${isEntry ? '<span class="file-badge">ENTRY</span>' : ''}
+    `;
+    item.onclick = () => setEntry(name);
+    tree.appendChild(item);
+  }
 }
 
-/* ---------------- ZIP LOAD ---------------- */
-document.getElementById("zipInput").addEventListener("change", async (e)=>{
-  const file = e.target.files[0];
-  if(!file) return;
+function setEntry(name) {
+  if (!name.endsWith('.html') && !name.endsWith('.htm')) {
+    log('warn', `"${name}" no es un HTML de entrada válido`);
+    return;
+  }
+  state.entryFile = name;
+  renderTree();
+  log('info', `Archivo de entrada: ${name}`);
+}
 
-  statusEl.innerText = "Leyendo ZIP...";
+/* ════════════════════════════════════════════
+   CORE: Build virtual HTML with all refs resolved
+════════════════════════════════════════════ */
+function resolveRefs(html, basePath) {
+  // We'll replace all src/href/url() references with blob: URLs
 
-  const zip = await JSZip.loadAsync(file);
+  const baseDir = basePath.includes('/') ? basePath.substring(0, basePath.lastIndexOf('/') + 1) : '';
 
-  fileMap = {};
-
-  const tasks = [];
-
-  zip.forEach((path, entry)=>{
-    if(!entry.dir){
-      const fullPath = "/" + path;
-
-      const t = entry.async("text").then(data=>{
-        fileMap[fullPath]=data;
-      });
-
-      tasks.push(t);
+  function resolvePath(ref) {
+    if (!ref || ref.startsWith('blob:') || ref.startsWith('data:') ||
+        ref.startsWith('http://') || ref.startsWith('https://') ||
+        ref.startsWith('//') || ref.startsWith('#') || ref.startsWith('javascript:')) {
+      return ref;
     }
-  });
+    // Normalize
+    let resolved;
+    if (ref.startsWith('/')) {
+      resolved = ref.slice(1); // absolute from root
+    } else {
+      resolved = baseDir + ref;
+    }
+    // Normalize ".." and "."
+    const parts = resolved.split('/');
+    const stack = [];
+    for (const p of parts) {
+      if (p === '..') stack.pop();
+      else if (p !== '.') stack.push(p);
+    }
+    resolved = stack.join('/');
 
-  await Promise.all(tasks);
+    const entry = state.files.get(resolved);
+    if (entry) return entry.url;
 
-  statusEl.innerText = "ZIP listo ✔ registrando SW...";
+    // Try without leading folder (flat fallback)
+    const base = resolved.split('/').pop();
+    for (const [k, v] of state.files) {
+      if (k.endsWith('/' + base) || k === base) return v.url;
+    }
 
-  await registerSW();
-
-  iframe.src = "/index.html";
-
-  statusEl.innerText = "Sitio cargado ✔";
-});
-
-/* ---------------- MULTI FILE ---------------- */
-document.getElementById("multiInput").addEventListener("change",(e)=>{
-  const files = [...e.target.files];
-
-  fileMap = {};
-
-  let count = 0;
-
-  files.forEach(f=>{
-    const reader = new FileReader();
-
-    reader.onload = ()=>{
-      const path = "/" + (f.webkitRelativePath || f.name);
-      fileMap[path] = reader.result;
-
-      count++;
-
-      if(count === files.length){
-        statusEl.innerText = "Carpeta cargada ✔ registrando SW...";
-        registerSW().then(()=>{
-          iframe.src="/index.html";
-          statusEl.innerText="Sitio cargado ✔";
-        });
-      }
-    };
-
-    reader.readAsText(f);
-  });
-});
-
-/* ---------------- RESET ---------------- */
-async function resetAll(){
-  fileMap = {};
-  iframe.src="about:blank";
-  statusEl.innerText="Reset...";
-
-  if(swReg){
-    await swReg.unregister();
-    swReg=null;
+    log('warn', `No encontrado: ${ref}`);
+    return ref;
   }
 
-  statusEl.innerText="Limpio ✔";
-}
-</script>
+  // Resolve CSS files (inline their content with resolved sub-references)
+  function resolveCssContent(cssText, cssPath) {
+    const cssDir = cssPath.includes('/') ? cssPath.substring(0, cssPath.lastIndexOf('/') + 1) : '';
+    // url() in CSS
+    return cssText.replace(/url\(\s*(['"]?)([^)'"]+)\1\s*\)/g, (m, q, ref) => {
+      let resolved;
+      if (ref.startsWith('data:') || ref.startsWith('blob:') || ref.startsWith('http') || ref.startsWith('//')) {
+        return m;
+      }
+      if (ref.startsWith('/')) resolved = ref.slice(1);
+      else resolved = cssDir + ref;
+      const parts = resolved.split('/');
+      const stack = [];
+      for (const p of parts) {
+        if (p === '..') stack.pop();
+        else if (p !== '.') stack.push(p);
+      }
+      resolved = stack.join('/');
+      const entry = state.files.get(resolved);
+      if (entry) return `url("${entry.url}")`;
+      const base = resolved.split('/').pop();
+      for (const [k, v] of state.files) {
+        if (k.endsWith('/' + base) || k === base) return `url("${v.url}")`;
+      }
+      return m;
+    });
+  }
 
+  // Inline external CSS <link> tags
+  html = html.replace(/<link([^>]*?)href\s*=\s*(['"])([^'"]+)\2([^>]*?)>/gi, (m, pre, q, href, post) => {
+    if (!href.endsWith('.css')) return m;
+    const resolved = resolveFilePath(href, baseDir);
+    const entry = state.files.get(resolved);
+    if (entry && entry.rawText) {
+      const cssContent = resolveCssContent(entry.rawText, resolved);
+      return `<style>/* inlined: ${href} */\n${cssContent}</style>`;
+    }
+    return m;
+  });
+
+  // Inline external JS <script src> tags
+  html = html.replace(/<script([^>]*?)src\s*=\s*(['"])([^'"]+)\2([^>]*?)>/gi, (m, pre, q, src, post) => {
+    if (src.startsWith('http') || src.startsWith('//')) return m; // keep CDN
+    const resolved = resolveFilePath(src, baseDir);
+    const entry = state.files.get(resolved);
+    if (entry && entry.rawText) {
+      // Remove src attr, inline
+      return `<script${pre}${post}>/* inlined: ${src} */\n${entry.rawText}\n//`;
+    }
+    return m;
+  });
+
+  // src attributes (img, video, audio, iframe, source)
+  html = html.replace(/(<(?:img|video|audio|source|iframe|embed|track|input)[^>]*?\s)src\s*=\s*(['"])([^'"]+)\2/gi,
+    (m, tag, q, src) => `${tag}src=${q}${resolvePath(src)}${q}`);
+
+  // href on <a> only if it's a local html
+  html = html.replace(/(<a[^>]*?\s)href\s*=\s*(['"])([^'"]+)\2/gi, (m, tag, q, href) => {
+    if (href.endsWith('.html') || href.endsWith('.htm')) {
+      return `${tag}href=${q}${resolvePath(href)}${q}`;
+    }
+    return m;
+  });
+
+  // srcset
+  html = html.replace(/srcset\s*=\s*(['"])([^'"]+)\1/gi, (m, q, val) => {
+    const replaced = val.replace(/([^\s,]+)(\s+\d+[wx])?/g, (sm, url, descriptor) => {
+      return resolvePath(url) + (descriptor || '');
+    });
+    return `srcset=${q}${replaced}${q}`;
+  });
+
+  // Inline <style> url() references
+  html = html.replace(/<style([^>]*)>([\s\S]*?)<\/style>/gi, (m, attrs, css) => {
+    return `<style${attrs}>${resolveCssContent(css, basePath)}</style>`; 
+  });
+
+  // style="background: url(...)" inline styles
+  html = html.replace(/style\s*=\s*(['"])([\s\S]*?)\1/gi, (m, q, style) => {
+    const patched = style.replace(/url\(\s*(['"]?)([^)'"]+)\1\s*\)/g, (um, uq, ref) => {
+      return `url("${resolvePath(ref)}")`;
+    });
+    return `style=${q}${patched}${q}`;
+  });
+
+  // data-src (lazy loading)
+  html = html.replace(/data-src\s*=\s*(['"])([^'"]+)\1/gi,
+    (m, q, src) => `data-src=${q}${resolvePath(src)}${q}`);
+
+  return html;
+}
+
+function resolveFilePath(ref, baseDir) {
+  if (ref.startsWith('/')) return ref.slice(1);
+  const combined = baseDir + ref;
+  const parts = combined.split('/');
+  const stack = [];
+  for (const p of parts) {
+    if (p === '..') stack.pop();
+    else if (p !== '.') stack.push(p);
+  }
+  return stack.join('/');
+}
+
+/* ════════════════════════════════════════════
+   LAUNCH PROJECT
+════════════════════════════════════════════ */
+function launchProject() {
+  if (!state.entryFile) {
+    log('error', 'No hay archivo de entrada. Sube un index.html y haz clic en él.');
+    document.getElementById('entryHint').style.display = 'block';
+    return;
+  }
+
+  const entry = state.files.get(state.entryFile);
+  if (!entry) { log('error', 'Archivo de entrada no encontrado.'); return; }
+  if (!entry.rawText) { log('error', 'No se pudo leer el HTML de entrada.'); return; }
+
+  log('info', `Cargando: ${state.entryFile}`);
+
+  // Revoke old blob URLs we created
+  state.blobUrls.forEach(u => URL.revokeObjectURL(u));
+  state.blobUrls = [];
+
+  let html = entry.rawText;
+
+  // Inject console interceptor
+  const consoleScript = `<script>
+(function(){
+  function send(type, args) {
+    try {
+      const msg = Array.from(args).map(a => {
+        try { return typeof a === 'object' ? JSON.stringify(a) : String(a); } catch(e) { return String(a); }
+      }).join(' ');
+      window.parent.postMessage({ __mobiledev: true, type, msg }, '*');
+    } catch(e) {}
+  }
+  const orig = { log: console.log, warn: console.warn, error: console.error, info: console.info };
+  console.log = (...a) => { orig.log(...a); send('info', a); };
+  console.warn = (...a) => { orig.warn(...a); send('warn', a); };
+  console.error = (...a) => { orig.error(...a); send('error', a); };
+  console.info = (...a) => { orig.info(...a); send('info', a); };
+  window.onerror = (msg, src, line, col) => {
+    send('error', [\`\${msg} (line \${line}:\${col})\`]);
+  };
+  window.onunhandledrejection = (e) => {
+    send('error', [\`Unhandled Promise: \${e.reason}\`]);
+  };
+}());
+<\/script>`;
+
+  // Inject before </head> or at start
+  if (html.includes('</head>')) {
+    html = html.replace('</head>', consoleScript + '</head>');
+  } else if (html.includes('<body>')) {
+    html = html.replace('<body>', consoleScript + '<body>');
+  } else {
+    html = consoleScript + html;
+  }
+
+  // Resolve all references
+  html = resolveRefs(html, state.entryFile);
+
+  // Create blob URL for the final HTML
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  state.blobUrls.push(url);
+
+  const iframe = document.getElementById('deviceIframe');
+  iframe.src = url;
+
+  document.getElementById('emptyOverlay').classList.add('hidden');
+  document.getElementById('statusDot').classList.add('active');
+  document.getElementById('statusText').textContent = state.entryFile;
+
+  log('ok', `Proyecto cargado · ${state.files.size} archivos en memoria`);
+}
+
+function reloadDevice() {
+  launchProject();
+}
+
+/* ════════════════════════════════════════════
+   CONSOLE FROM IFRAME
+════════════════════════════════════════════ */
+window.addEventListener('message', (e) => {
+  if (e.data && e.data.__mobiledev) {
+    log(e.data.type, e.data.msg);
+  }
+});
+
+/* ════════════════════════════════════════════
+   CONSOLE UI
+════════════════════════════════════════════ */
+function log(type, msg) {
+  const area = document.getElementById('consoleArea');
+  const now = new Date();
+  const ts = now.getHours().toString().padStart(2,'0') + ':' +
+             now.getMinutes().toString().padStart(2,'0') + ':' +
+             now.getSeconds().toString().padStart(2,'0');
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  line.innerHTML = `<span class="log-ts">${ts}</span><span class="log-type ${type}">${type.toUpperCase()}</span><span class="log-msg">${escHtml(String(msg))}</span>`;
+  area.appendChild(line);
+  area.scrollTop = area.scrollHeight;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function clearConsole() {
+  document.getElementById('consoleArea').innerHTML = '';
+}
+
+/* ════════════════════════════════════════════
+   CLEAR ALL
+════════════════════════════════════════════ */
+function clearAll() {
+  state.files.forEach(f => URL.revokeObjectURL(f.url));
+  state.blobUrls.forEach(u => URL.revokeObjectURL(u));
+  state.files.clear();
+  state.entryFile = null;
+  state.blobUrls = [];
+
+  document.getElementById('deviceIframe').src = 'about:blank';
+  document.getElementById('emptyOverlay').classList.remove('hidden');
+  document.getElementById('statusDot').classList.remove('active');
+  document.getElementById('statusText').textContent = 'Sin proyecto';
+  document.getElementById('fileCount').textContent = '0';
+  document.getElementById('entryHint').style.display = 'none';
+  renderTree();
+  clearConsole();
+  log('info', 'Proyecto limpiado');
+}
+
+/* ════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════ */
+log('info', 'MobileDevTool listo · Sube tus archivos HTML/CSS/JS');
+</script>
 </body>
 </html>
