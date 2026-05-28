@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<title>Mobile UI Viewer</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<style>
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+:root{
+  --bg:#0f172a;
+  --panel:#111827;
+  --card:#1e293b;
+  --text:#f8fafc;
+  --muted:#94a3b8;
+  --accent:#3b82f6;
+  --border:#334155;
+}
+
+body{
+  background:
+    radial-gradient(circle at top,#1e293b,#020617);
+  color:var(--text);
+  font-family:
+    Inter,
+    Segoe UI,
+    sans-serif;
+
+  min-height:100vh;
+  overflow:auto;
+  padding:20px;
+}
+
+.container{
+  width:100%;
+  max-width:1800px;
+  margin:auto;
+}
+
+.topbar{
+  background:rgba(15,23,42,.85);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:20px;
+  padding:20px;
+  margin-bottom:20px;
+  backdrop-filter:blur(12px);
+}
+
+h1{
+  font-size:28px;
+  margin-bottom:10px;
+}
+
+.description{
+  color:var(--muted);
+  line-height:1.6;
+  margin-bottom:20px;
+}
+
+.controls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  align-items:center;
+}
+
+.upload-btn{
+  position:relative;
+  overflow:hidden;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:14px 18px;
+  border-radius:14px;
+  background:var(--accent);
+  color:white;
+  font-weight:700;
+  cursor:pointer;
+  border:none;
+}
+
+.upload-btn input{
+  position:absolute;
+  inset:0;
+  opacity:0;
+  cursor:pointer;
+}
+
+button,
+select{
+  border:none;
+  outline:none;
+  border-radius:14px;
+  padding:14px 16px;
+  background:var(--card);
+  color:white;
+  font-weight:600;
+  cursor:pointer;
+}
+
+button:hover{
+  opacity:.9;
+}
+
+.info{
+  margin-top:16px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:20px;
+  color:#cbd5e1;
+}
+
+.viewer-wrapper{
+  width:100%;
+  overflow:auto;
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  padding:40px;
+}
+
+.phone{
+  position:relative;
+  width:1080px;
+  height:2340px;
+  background:black;
+  border-radius:70px;
+  border:14px solid #111827;
+  overflow:hidden;
+
+  box-shadow:
+    0 0 0 4px #334155,
+    0 30px 80px rgba(0,0,0,.7);
+
+  transform-origin:top center;
+}
+
+.phone::before{
+  content:"";
+  position:absolute;
+  top:18px;
+  left:50%;
+  transform:translateX(-50%);
+  width:280px;
+  height:35px;
+  background:#000;
+  border-radius:0 0 20px 20px;
+  z-index:10;
+}
+
+iframe{
+  width:1080px;
+  height:2340px;
+  border:none;
+  background:white;
+}
+
+.logs{
+  margin-top:16px;
+  max-height:160px;
+  overflow:auto;
+  background:#020617;
+  border-radius:14px;
+  padding:12px;
+  font-size:13px;
+  border:1px solid rgba(255,255,255,.05);
+}
+
+.log{
+  margin-bottom:6px;
+  color:#cbd5e1;
+}
+
+.success{
+  color:#4ade80;
+}
+
+.error{
+  color:#f87171;
+}
+
+.warning{
+  color:#fbbf24;
+}
+
+@media(max-width:1600px){
+
+  .phone{
+    transform:scale(.6);
+  }
+
+  .viewer-wrapper{
+    height:1500px;
+  }
+
+}
+
+@media(max-width:1000px){
+
+  .phone{
+    transform:scale(.35);
+  }
+
+  .viewer-wrapper{
+    height:900px;
+  }
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="topbar">
+
+<h1>Mobile UI Viewer</h1>
+
+<div class="description">
+Carga un proyecto web completo localmente (ZIP o carpeta)
+y visualízalo como si estuviera en un dispositivo móvil real
+1080×2340. Funciona completamente offline y sin servidor.
+</div>
+
+<div class="controls">
+
+<label class="upload-btn">
+  Cargar ZIP
+  <input
+    type="file"
+    id="zipInput"
+    accept=".zip"
+  >
+</label>
+
+<label class="upload-btn">
+  Cargar Carpeta
+  <input
+    type="file"
+    id="folderInput"
+    webkitdirectory
+    multiple
+  >
+</label>
+
+<select id="deviceSelect">
+
+<option value="1080x2340">
+1080 × 2340
+</option>
+
+<option value="1179x2556">
+iPhone 15 Pro
+</option>
+
+<option value="1440x3120">
+Galaxy S24 Ultra
+</option>
+
+<option value="1080x2400">
+Pixel 8
+</option>
+
+</select>
+
+<button id="rotateBtn">
+Rotar
+</button>
+
+<button id="reloadBtn">
+Recargar
+</button>
+
+<button id="resetBtn">
+Resetear
+</button>
+
+</div>
+
+<div class="info">
+
+<div>
+Resolución:
+<span id="resolutionText">
+1080×2340
+</span>
+</div>
+
+<div>
+Archivos:
+<span id="fileCount">
+0
+</span>
+</div>
+
+<div>
+Estado:
+<span id="statusText" class="warning">
+Esperando proyecto
+</span>
+</div>
+
+</div>
+
+<div class="logs" id="logs"></div>
+
+</div>
+
+<div class="viewer-wrapper">
+
+<div class="phone" id="phone">
+
+<iframe id="viewer"></iframe>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const zipInput = document.getElementById("zipInput");
+const folderInput = document.getElementById("folderInput");
+
+const viewer = document.getElementById("viewer");
+
+const logs = document.getElementById("logs");
+
+const statusText = document.getElementById("statusText");
+
+const fileCount = document.getElementById("fileCount");
+
+const resolutionText = document.getElementById("resolutionText");
+
+const deviceSelect = document.getElementById("deviceSelect");
+
+const phone = document.getElementById("phone");
+
+let virtualFS = {};
+
+let currentPage = null;
+
+let isLandscape = false;
+
+function log(msg,type=""){
+
+  const div = document.createElement("div");
+
+  div.className = `log ${type}`;
+
+  div.textContent =
+    `[${new Date().toLocaleTimeString()}] ${msg}`;
+
+  logs.prepend(div);
+
+}
+
+function normalizePath(path){
+
+  return path
+    .replace(/\\/g,"/")
+    .replace(/^\/+/,"")
+    .trim();
+
+}
+
+function getMime(path){
+
+  const ext =
+    path.split(".").pop().toLowerCase();
+
+  const map = {
+
+    html:"text/html",
+    htm:"text/html",
+
+    css:"text/css",
+
+    js:"application/javascript",
+
+    json:"application/json",
+
+    png:"image/png",
+    jpg:"image/jpeg",
+    jpeg:"image/jpeg",
+    gif:"image/gif",
+    svg:"image/svg+xml",
+    webp:"image/webp",
+
+    woff:"font/woff",
+    woff2:"font/woff2",
+    ttf:"font/ttf",
+
+    mp4:"video/mp4",
+    mp3:"audio/mpeg"
+
+  };
+
+  return map[ext]
+    || "application/octet-stream";
+
+}
+
+function createBlobURL(content,mime){
+
+  const blob =
+    new Blob([content],{type:mime});
+
+  return URL.createObjectURL(blob);
+
+}
+
+async function processZIP(file){
+
+  log("Descomprimiendo ZIP...");
+
+  const zip =
+    await JSZip.loadAsync(file);
+
+  virtualFS = {};
+
+  const promises = [];
+
+  zip.forEach((relativePath,entry)=>{
+
+    if(entry.dir) return;
+
+    promises.push(
+      (async()=>{
+
+        const path =
+          normalizePath(relativePath);
+
+        const mime = getMime(path);
+
+        if(
+          mime.startsWith("text/")
+          ||
+          mime.includes("javascript")
+          ||
+          mime.includes("json")
+        ){
+
+          const text =
+            await entry.async("string");
+
+          virtualFS[path] = {
+            mime,
+            content:text,
+            blobURL:createBlobURL(text,mime)
+          };
+
+        }else{
+
+          const blob =
+            await entry.async("blob");
+
+          virtualFS[path] = {
+            mime,
+            content:blob,
+            blobURL:
+              URL.createObjectURL(blob)
+          };
+
+        }
+
+      })()
+    );
+
+  });
+
+  await Promise.all(promises);
+
+}
+
+async function processFolder(files){
+
+  virtualFS = {};
+
+  const promises = [];
+
+  for(const file of files){
+
+    promises.push(
+      (async()=>{
+
+        const path =
+          normalizePath(
+            file.webkitRelativePath
+          );
+
+        const mime =
+          file.type || getMime(path);
+
+        if(
+          mime.startsWith("text/")
+          ||
+          mime.includes("javascript")
+          ||
+          mime.includes("json")
+        ){
+
+          const text =
+            await file.text();
+
+          virtualFS[path] = {
+
+            mime,
+
+            content:text,
+
+            blobURL:
+              createBlobURL(text,mime)
+
+          };
+
+        }else{
+
+          virtualFS[path] = {
+
+            mime,
+
+            content:file,
+
+            blobURL:
+              URL.createObjectURL(file)
+
+          };
+
+        }
+
+      })()
+    );
+
+  }
+
+  await Promise.all(promises);
+
+}
+
+function resolvePath(base,relative){
+
+  if(
+    relative.startsWith("http")
+    ||
+    relative.startsWith("blob:")
+    ||
+    relative.startsWith("data:")
+    ||
+    relative.startsWith("#")
+  ){
+    return relative;
+  }
+
+  const stack = base.split("/");
+
+  stack.pop();
+
+  const parts =
+    relative.split("/");
+
+  for(const part of parts){
+
+    if(part === ".") continue;
+
+    if(part === ".."){
+
+      stack.pop();
+
+    }else{
+
+      stack.push(part);
+
+    }
+
+  }
+
+  return normalizePath(
+    stack.join("/")
+  );
+
+}
+
+function rewriteHTML(html,currentPath){
+
+  const parser =
+    new DOMParser();
+
+  const doc =
+    parser.parseFromString(
+      html,
+      "text/html"
+    );
+
+  const selectors = [
+
+    ["link","href"],
+    ["script","src"],
+    ["img","src"],
+    ["source","src"],
+    ["video","src"],
+    ["audio","src"]
+
+  ];
+
+  selectors.forEach(([tag,attr])=>{
+
+    doc.querySelectorAll(tag)
+      .forEach(el=>{
+
+        const value =
+          el.getAttribute(attr);
+
+        if(!value) return;
+
+        const resolved =
+          resolvePath(
+            currentPath,
+            value
+          );
+
+        if(virtualFS[resolved]){
+
+          el.setAttribute(
+            attr,
+            virtualFS[resolved].blobURL
+          );
+
+        }
+
+      });
+
+  });
+
+  doc.querySelectorAll("a[href]")
+    .forEach(a=>{
+
+      a.addEventListener("click",e=>{
+
+        e.preventDefault();
+
+      });
+
+      a.setAttribute(
+        "data-href",
+        a.getAttribute("href")
+      );
+
+      a.setAttribute(
+        "href",
+        "#"
+      );
+
+    });
+
+  const script =
+  document.createElement("script");
+
+  script.textContent = `
+
+  document.addEventListener(
+    "click",
+    function(e){
+
+      const a =
+        e.target.closest("a[data-href]");
+
+      if(!a) return;
+
+      e.preventDefault();
+
+      parent.postMessage({
+
+        type:"navigate",
+
+        href:a.dataset.href
+
+      },"*");
+
+    }
+  );
+
+  `;
+
+  doc.body.appendChild(script);
+
+  return `
+  <!DOCTYPE html>
+  <html>
+  ${doc.documentElement.innerHTML}
+  </html>
+  `;
+
+}
+
+function loadPage(path){
+
+  path = normalizePath(path);
+
+  if(!virtualFS[path]){
+
+    log(
+      "Archivo no encontrado: " + path,
+      "error"
+    );
+
+    return;
+
+  }
+
+  currentPage = path;
+
+  const file = virtualFS[path];
+
+  let html =
+    file.content;
+
+  html =
+    rewriteHTML(html,path);
+
+  viewer.srcdoc = html;
+
+  statusText.textContent =
+    "Proyecto cargado";
+
+  statusText.className =
+    "success";
+
+  log(
+    "Página cargada: " + path,
+    "success"
+  );
+
+}
+
+async function loadProject(){
+
+  try{
+
+    statusText.textContent =
+      "Procesando...";
+
+    statusText.className =
+      "warning";
+
+    if(zipInput.files[0]){
+
+      await processZIP(
+        zipInput.files[0]
+      );
+
+    }else if(
+      folderInput.files.length
+    ){
+
+      await processFolder(
+        folderInput.files
+      );
+
+    }else{
+
+      alert(
+        "Selecciona un ZIP o carpeta"
+      );
+
+      return;
+
+    }
+
+    fileCount.textContent =
+      Object.keys(virtualFS).length;
+
+    let entry = "index.html";
+
+    if(!virtualFS[entry]){
+
+      const firstHTML =
+        Object.keys(virtualFS)
+          .find(f=>
+            f.endsWith(".html")
+          );
+
+      if(firstHTML)
+        entry = firstHTML;
+
+    }
+
+    loadPage(entry);
+
+  }catch(err){
+
+    console.error(err);
+
+    statusText.textContent =
+      "Error";
+
+    statusText.className =
+      "error";
+
+    log(err.message,"error");
+
+  }
+
+}
+
+window.addEventListener(
+  "message",
+  e=>{
+
+    if(
+      e.data.type === "navigate"
+    ){
+
+      const target =
+        resolvePath(
+          currentPage,
+          e.data.href
+        );
+
+      loadPage(target);
+
+    }
+
+  }
+);
+
+document
+  .getElementById("reloadBtn")
+  .onclick = ()=>{
+
+    if(currentPage){
+
+      loadPage(currentPage);
+
+    }
+
+  };
+
+document
+  .getElementById("resetBtn")
+  .onclick = ()=>{
+
+    viewer.srcdoc = "";
+
+    virtualFS = {};
+
+    currentPage = null;
+
+    fileCount.textContent = "0";
+
+    statusText.textContent =
+      "Esperando proyecto";
+
+    statusText.className =
+      "warning";
+
+    log("Proyecto reiniciado");
+
+  };
+
+document
+  .getElementById("rotateBtn")
+  .onclick = ()=>{
+
+    isLandscape = !isLandscape;
+
+    const [w,h] =
+      deviceSelect.value
+        .split("x");
+
+    if(isLandscape){
+
+      phone.style.width =
+        h + "px";
+
+      phone.style.height =
+        w + "px";
+
+      viewer.style.width =
+        h + "px";
+
+      viewer.style.height =
+        w + "px";
+
+    }else{
+
+      phone.style.width =
+        w + "px";
+
+      phone.style.height =
+        h + "px";
+
+      viewer.style.width =
+        w + "px";
+
+      viewer.style.height =
+        h + "px";
+
+    }
+
+  };
+
+deviceSelect.onchange = ()=>{
+
+  const [w,h] =
+    deviceSelect.value
+      .split("x");
+
+  resolutionText.textContent =
+    `${w}×${h}`;
+
+  if(!isLandscape){
+
+    phone.style.width =
+      w + "px";
+
+    phone.style.height =
+      h + "px";
+
+    viewer.style.width =
+      w + "px";
+
+    viewer.style.height =
+      h + "px";
+
+  }
+
+};
+
+zipInput.onchange = loadProject;
+
+folderInput.onchange = loadProject;
+
+log("Viewer listo");
+
+</script>
+
+</body>
+</html>
