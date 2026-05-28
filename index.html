@@ -1,975 +1,256 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Emulador Web Móvil 1080x2340</title>
+<meta charset="UTF-8">
+<title>Mobile Emulator 1080x2340</title>
 
 <style>
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-}
-
-:root{
-  --bg:#0f1115;
-  --panel:#181c23;
-  --card:#202631;
-  --text:#f1f5f9;
-  --muted:#94a3b8;
-  --accent:#3b82f6;
-  --danger:#ef4444;
-  --success:#10b981;
-  --border:#2b3442;
-}
-
-body{
-  background:linear-gradient(180deg,#0b0d12,#141922);
-  color:var(--text);
-  font-family:Inter,Segoe UI,Roboto,sans-serif;
-  min-height:100vh;
-  padding:24px;
-  overflow:auto;
-}
-
-.wrapper{
-  width:100%;
-  max-width:1800px;
-  margin:auto;
-}
-
-header{
-  margin-bottom:24px;
-}
-
-h1{
-  font-size:32px;
-  margin-bottom:10px;
-}
-
-.description{
-  color:var(--muted);
-  line-height:1.6;
-  max-width:1200px;
-}
-
-.top-panel{
-  display:flex;
-  flex-wrap:wrap;
-  gap:20px;
-  margin-top:24px;
-  margin-bottom:24px;
-}
-
-.card{
-  background:rgba(32,38,49,.9);
-  border:1px solid var(--border);
-  border-radius:18px;
-  padding:20px;
-  backdrop-filter:blur(12px);
-  box-shadow:
-    0 10px 30px rgba(0,0,0,.35),
-    inset 0 1px 0 rgba(255,255,255,.03);
-}
-
-.controls{
-  flex:1;
-  min-width:320px;
-}
-
-.status{
-  width:340px;
-}
-
-label.upload{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  width:100%;
-  padding:18px;
-  border:2px dashed #42526b;
-  border-radius:14px;
-  cursor:pointer;
-  transition:.25s;
-  margin-bottom:16px;
-  text-align:center;
-  color:#dbeafe;
-  background:#111827;
-}
-
-label.upload:hover{
-  border-color:var(--accent);
-  background:#162032;
-}
-
-input[type=file]{
-  display:none;
-}
-
-.buttons{
-  display:flex;
-  gap:12px;
-  flex-wrap:wrap;
-}
-
-button{
-  border:none;
-  outline:none;
-  background:var(--accent);
-  color:white;
-  padding:14px 18px;
-  border-radius:12px;
-  font-weight:600;
-  cursor:pointer;
-  transition:.2s;
-}
-
-button:hover{
-  transform:translateY(-2px);
-}
-
-button.secondary{
-  background:#334155;
-}
-
-button.danger{
-  background:var(--danger);
-}
-
-.info-row{
-  display:flex;
-  justify-content:space-between;
-  gap:10px;
-  margin-bottom:12px;
-  border-bottom:1px solid rgba(255,255,255,.06);
-  padding-bottom:10px;
-}
-
-.info-row span:first-child{
-  color:var(--muted);
-}
-
-.success{
-  color:var(--success);
-  font-weight:700;
-}
-
-.error{
-  color:var(--danger);
-  font-weight:700;
-}
-
-.warning{
-  color:#f59e0b;
-  font-weight:700;
-}
-
-.viewer-area{
-  width:100%;
-  overflow:auto;
-  padding:40px 20px;
-  display:flex;
-  justify-content:center;
-  align-items:flex-start;
-}
-
-.phone{
-  position:relative;
-  width:1080px;
-  height:2340px;
-  background:black;
-  border-radius:70px;
-  border:14px solid #0f172a;
-  box-shadow:
-    0 0 0 4px #334155,
-    0 40px 120px rgba(0,0,0,.8);
-  overflow:hidden;
-  transform-origin:top center;
-}
-
-.phone::before{
-  content:"";
-  position:absolute;
-  top:18px;
-  left:50%;
-  transform:translateX(-50%);
-  width:300px;
-  height:38px;
-  background:#0a0a0a;
-  border-radius:0 0 24px 24px;
-  z-index:50;
-}
-
-iframe{
-  width:1080px;
-  height:2340px;
-  border:none;
-  background:white;
-}
-
-.loader{
-  display:none;
-  align-items:center;
-  gap:10px;
-  margin-top:15px;
-}
-
-.spinner{
-  width:20px;
-  height:20px;
-  border:3px solid rgba(255,255,255,.15);
-  border-top-color:white;
-  border-radius:50%;
-  animation:spin 1s linear infinite;
-}
-
-@keyframes spin{
-  to{
-    transform:rotate(360deg);
-  }
-}
-
-.logs{
-  margin-top:15px;
-  max-height:180px;
-  overflow:auto;
-  background:#0f172a;
-  border-radius:12px;
-  padding:12px;
-  font-size:13px;
-  line-height:1.5;
-  border:1px solid rgba(255,255,255,.08);
-}
-
-.logs div{
-  margin-bottom:6px;
-  color:#cbd5e1;
-  word-break:break-word;
-}
-
-.help{
-  margin-top:12px;
-  color:#cbd5e1;
-  line-height:1.7;
-}
-
-.scale-container{
-  display:flex;
-  justify-content:center;
-  margin-top:10px;
-}
-
-.scale-label{
-  color:var(--muted);
-  font-size:13px;
-}
-
-@media (max-width:1400px){
-  .phone{
-    transform:scale(.55);
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #0f0f14;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
   }
 
-  .viewer-area{
-    height:1450px;
+  .topbar {
+    width: 100%;
+    max-width: 1200px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
   }
-}
 
-@media (max-width:900px){
-  .phone{
-    transform:scale(.35);
+  button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #2b2b3a;
+    color: white;
   }
 
-  .viewer-area{
-    height:950px;
+  button:hover {
+    background: #3a3a52;
   }
-}
+
+  input {
+    color: white;
+  }
+
+  .status {
+    margin-top: 10px;
+    font-size: 14px;
+    opacity: 0.8;
+  }
+
+  /* Mobile frame */
+  .device {
+    width: 1080px;
+    height: 2340px;
+    border-radius: 60px;
+    background: #111;
+    box-shadow: 0 0 50px rgba(0,0,0,0.8);
+    padding: 20px;
+    position: relative;
+  }
+
+  iframe {
+    width: 1080px;
+    height: 2340px;
+    border: none;
+    border-radius: 40px;
+    background: white;
+  }
+
+  .notch {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    height: 30px;
+    background: black;
+    border-radius: 20px;
+  }
 </style>
 </head>
 
 <body>
 
-<div class="wrapper">
+<h2>📱 Mobile Emulator 1080×2340</h2>
 
-<header>
-  <h1>Emulador Web Móvil 1080 × 2340</h1>
-
-  <div class="description">
-    Este emulador permite cargar un sitio web completo (HTML, CSS, JS, imágenes, fuentes y demás archivos)
-    directamente desde tu navegador sin usar servidor externo. El contenido se sirve localmente mediante
-    un Service Worker y un sistema virtual de archivos en memoria.
-  </div>
-</header>
-
-<div class="top-panel">
-
-  <div class="card controls">
-
-    <label class="upload">
-      <div>
-        <strong>Seleccionar ZIP del sitio</strong><br>
-        <small>Compatible con estructura completa de carpetas</small>
-      </div>
-      <input type="file" id="zipInput" accept=".zip">
-    </label>
-
-    <label class="upload">
-      <div>
-        <strong>O seleccionar múltiples archivos</strong><br>
-        <small>HTML, CSS, JS, imágenes, fuentes, etc.</small>
-      </div>
-      <input type="file" id="filesInput" multiple webkitdirectory>
-    </label>
-
-    <div class="buttons">
-      <button id="loadBtn">
-        Cargar Sitio
-      </button>
-
-      <button class="secondary" id="reloadBtn">
-        Recargar iframe
-      </button>
-
-      <button class="danger" id="resetBtn">
-        Resetear
-      </button>
-    </div>
-
-    <div class="loader" id="loader">
-      <div class="spinner"></div>
-      <div>Procesando archivos y registrando Service Worker...</div>
-    </div>
-
-    <div class="logs" id="logs"></div>
-
-  </div>
-
-  <div class="card status">
-
-    <div class="info-row">
-      <span>Resolución:</span>
-      <span>1080 × 2340</span>
-    </div>
-
-    <div class="info-row">
-      <span>Archivos cargados:</span>
-      <span id="fileCount">0</span>
-    </div>
-
-    <div class="info-row">
-      <span>Service Worker:</span>
-      <span id="swStatus" class="warning">Inactivo</span>
-    </div>
-
-    <div class="info-row">
-      <span>Estado:</span>
-      <span id="siteStatus" class="warning">Sin sitio cargado</span>
-    </div>
-
-    <div class="help">
-      <strong>Ayuda:</strong><br><br>
-
-      • El sitio se ejecuta completamente dentro del navegador.<br>
-      • Los enlaces internos funcionan normalmente.<br>
-      • CSS y JavaScript externos son interceptados por el Service Worker.<br>
-      • Compatible con fetch relativos y navegación multipágina.<br>
-      • Ideal para pruebas móviles rápidas sin servidor local.
-    </div>
-
-  </div>
-
+<div class="topbar">
+  <input type="file" id="zipInput" accept=".zip" />
+  <button onclick="resetAll()">Reset</button>
 </div>
 
-<div class="scale-container">
-  <div class="scale-label">
-    Vista móvil virtual centrada (1080×2340)
-  </div>
-</div>
+<div class="status" id="status">Estado: esperando archivos...</div>
 
-<div class="viewer-area">
-
-  <div class="phone">
-    <iframe
-      id="viewer"
-      src="about:blank"
-      allow="fullscreen"
-      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads"
-    ></iframe>
-  </div>
-
-</div>
-
+<div class="device">
+  <div class="notch"></div>
+  <iframe id="screen"></iframe>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <script>
-const zipInput = document.getElementById('zipInput');
-const filesInput = document.getElementById('filesInput');
-const loadBtn = document.getElementById('loadBtn');
-const reloadBtn = document.getElementById('reloadBtn');
-const resetBtn = document.getElementById('resetBtn');
-const viewer = document.getElementById('viewer');
+let fileMap = {};
+let swRegistration = null;
 
-const loader = document.getElementById('loader');
-const logs = document.getElementById('logs');
+const statusEl = document.getElementById("status");
+const iframe = document.getElementById("screen");
 
-const fileCount = document.getElementById('fileCount');
-const swStatus = document.getElementById('swStatus');
-const siteStatus = document.getElementById('siteStatus');
+/* -----------------------------
+   SERVICE WORKER BLOB
+------------------------------ */
+function createSW() {
+  const swCode = `
+    let files = {};
 
-let virtualFS = {};
-let currentSWRegistration = null;
+    self.addEventListener('message', e => {
+      if (e.data.type === 'FILES') {
+        files = e.data.files || {};
+      }
+    });
 
-function log(msg, type='info'){
-  const div = document.createElement('div');
+    function getMime(path) {
+      if (path.endsWith('.html')) return 'text/html';
+      if (path.endsWith('.css')) return 'text/css';
+      if (path.endsWith('.js')) return 'application/javascript';
+      if (path.endsWith('.png')) return 'image/png';
+      if (path.endsWith('.jpg') || path.endsWith('.jpeg')) return 'image/jpeg';
+      if (path.endsWith('.svg')) return 'image/svg+xml';
+      return 'text/plain';
+    }
 
-  if(type === 'error'){
-    div.style.color = '#fca5a5';
+    self.addEventListener('fetch', event => {
+      let url = new URL(event.request.url);
+      let path = url.pathname;
+
+      if (path === '/') path = '/index.html';
+
+      if (files[path]) {
+        let res = files[path];
+
+        let response;
+
+        if (typeof res === 'string') {
+          response = new Response(res, {
+            headers: { 'Content-Type': getMime(path) }
+          });
+        } else {
+          response = new Response(res, {
+            headers: { 'Content-Type': getMime(path) }
+          });
+        }
+
+        event.respondWith(response);
+        return;
+      }
+
+      event.respondWith(
+        new Response('404 Not Found: ' + path, {
+          status: 404,
+          headers: { 'Content-Type': 'text/plain' }
+        })
+      );
+    });
+  `;
+
+  const blob = new Blob([swCode], { type: "application/javascript" });
+  return URL.createObjectURL(blob);
+}
+
+/* -----------------------------
+   REGISTER SW
+------------------------------ */
+async function registerSW(files) {
+  const swUrl = createSW();
+
+  if (swRegistration) {
+    await swRegistration.unregister();
   }
 
-  if(type === 'success'){
-    div.style.color = '#6ee7b7';
-  }
+  swRegistration = await navigator.serviceWorker.register(swUrl);
 
-  div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-  logs.prepend(div);
+  await navigator.serviceWorker.ready;
+
+  navigator.serviceWorker.controller?.postMessage({
+    type: "FILES",
+    files
+  });
+
+  statusEl.textContent = "Estado: SW activo + archivos cargados";
 }
 
-function showLoader(show){
-  loader.style.display = show ? 'flex' : 'none';
-}
+/* -----------------------------
+   LOAD ZIP
+------------------------------ */
+document.getElementById("zipInput").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
 
-function normalizePath(path){
-  return path
-    .replace(/\\/g,'/')
-    .replace(/^\/+/,'')
-    .trim();
-}
-
-function getMimeType(path){
-  const ext = path.split('.').pop().toLowerCase();
-
-  const map = {
-    html:'text/html',
-    htm:'text/html',
-    css:'text/css',
-    js:'application/javascript',
-    mjs:'application/javascript',
-    json:'application/json',
-    png:'image/png',
-    jpg:'image/jpeg',
-    jpeg:'image/jpeg',
-    gif:'image/gif',
-    svg:'image/svg+xml',
-    webp:'image/webp',
-    ico:'image/x-icon',
-    txt:'text/plain',
-    xml:'application/xml',
-    pdf:'application/pdf',
-    mp4:'video/mp4',
-    mp3:'audio/mpeg',
-    wav:'audio/wav',
-    ogg:'audio/ogg',
-    woff:'font/woff',
-    woff2:'font/woff2',
-    ttf:'font/ttf',
-    otf:'font/otf',
-    wasm:'application/wasm'
-  };
-
-  return map[ext] || 'application/octet-stream';
-}
-
-async function processZIP(file){
-  log('Descomprimiendo ZIP...');
+  statusEl.textContent = "Descomprimiendo ZIP...";
 
   const zip = await JSZip.loadAsync(file);
-
-  virtualFS = {};
+  fileMap = {};
 
   const promises = [];
 
   zip.forEach((relativePath, zipEntry) => {
+    if (!zipEntry.dir) {
+      const p = zipEntry.async("blob").then(content => {
+        const path = "/" + relativePath;
 
-    if(zipEntry.dir) return;
-
-    promises.push(
-      (async () => {
-
-        const path = normalizePath(relativePath);
-        const mime = getMimeType(path);
-
-        if(mime.startsWith('text/') ||
-           mime.includes('javascript') ||
-           mime.includes('json') ||
-           mime.includes('xml')){
-
-          const text = await zipEntry.async('string');
-
-          virtualFS[path] = {
-            type:'text',
-            mime,
-            content:text
-          };
-
-        }else{
-
-          const blob = await zipEntry.async('blob');
-
-          virtualFS[path] = {
-            type:'blob',
-            mime,
-            content:blob
-          };
-
+        // detect text or binary
+        if (
+          path.endsWith(".html") ||
+          path.endsWith(".css") ||
+          path.endsWith(".js")
+        ) {
+          fileMap[path] = null;
+          return zipEntry.async("text").then(t => fileMap[path] = t);
+        } else {
+          fileMap[path] = content;
         }
+      });
 
-      })()
-    );
-
+      promises.push(p);
+    }
   });
 
   await Promise.all(promises);
 
-  log(`ZIP procesado correctamente (${Object.keys(virtualFS).length} archivos)`, 'success');
-}
+  await registerSW(fileMap);
 
-async function processMultipleFiles(files){
+  statusEl.textContent = "Estado: cargando app...";
 
-  virtualFS = {};
-
-  const promises = [];
-
-  for(const file of files){
-
-    promises.push(
-      (async ()=>{
-
-        const path = normalizePath(
-          file.webkitRelativePath || file.name
-        );
-
-        const mime = file.type || getMimeType(path);
-
-        if(
-          mime.startsWith('text/') ||
-          mime.includes('javascript') ||
-          mime.includes('json') ||
-          mime.includes('xml')
-        ){
-
-          const text = await file.text();
-
-          virtualFS[path] = {
-            type:'text',
-            mime,
-            content:text
-          };
-
-        }else{
-
-          virtualFS[path] = {
-            type:'blob',
-            mime,
-            content:file
-          };
-
-        }
-
-      })()
-    );
-
-  }
-
-  await Promise.all(promises);
-
-  log(`Archivos múltiples cargados (${Object.keys(virtualFS).length})`, 'success');
-}
-
-async function registerSW(){
-
-  if(!('serviceWorker' in navigator)){
-    throw new Error('Service Worker no soportado en este navegador.');
-  }
-
-  const swCode = `
-  let virtualFS = {};
-
-  self.addEventListener('install', event => {
-    self.skipWaiting();
-  });
-
-  self.addEventListener('activate', event => {
-    event.waitUntil(self.clients.claim());
-  });
-
-  self.addEventListener('message', async event => {
-
-    if(event.data.type === 'SET_FILES'){
-
-      virtualFS = {};
-
-      for(const [path, value] of Object.entries(event.data.files)){
-
-        if(value.type === 'text'){
-
-          virtualFS[path] = value;
-
-        }else{
-
-          const response = await fetch(value.objectURL);
-          const blob = await response.blob();
-
-          virtualFS[path] = {
-            type:'blob',
-            mime:value.mime,
-            blob
-          };
-
-        }
-
-      }
-
-      event.source.postMessage({
-        type:'FILES_READY'
-      });
-
-    }
-
-  });
-
-  function normalizePath(path){
-
-    path = path.split('?')[0];
-    path = path.split('#')[0];
-
-    path = path.replace(/^\\//,'');
-
-    if(path === '') path = 'index.html';
-
-    return path;
-  }
-
-  self.addEventListener('fetch', event => {
-
-    const url = new URL(event.request.url);
-
-    if(url.origin !== location.origin){
-      return;
-    }
-
-    const path = normalizePath(url.pathname);
-
-    if(virtualFS[path]){
-
-      event.respondWith(
-        (async ()=>{
-
-          const file = virtualFS[path];
-
-          if(file.type === 'text'){
-
-            return new Response(file.content,{
-              status:200,
-              headers:{
-                'Content-Type': file.mime + '; charset=utf-8'
-              }
-            });
-
-          }else{
-
-            return new Response(file.blob,{
-              status:200,
-              headers:{
-                'Content-Type': file.mime
-              }
-            });
-
-          }
-
-        })()
-      );
-
-      return;
-    }
-
-    if(path === '' || path === '/'){
-
-      if(virtualFS['index.html']){
-
-        event.respondWith(
-          new Response(
-            virtualFS['index.html'].content,
-            {
-              status:200,
-              headers:{
-                'Content-Type':'text/html'
-              }
-            }
-          )
-        );
-
-        return;
-      }
-
-    }
-
-    event.respondWith(
-      new Response(
-        \`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>404</title>
-          <style>
-            body{
-              font-family:sans-serif;
-              background:#111827;
-              color:white;
-              display:flex;
-              align-items:center;
-              justify-content:center;
-              height:100vh;
-              margin:0;
-            }
-            .box{
-              text-align:center;
-            }
-            h1{
-              font-size:60px;
-              margin-bottom:10px;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="box">
-            <h1>404</h1>
-            <p>Archivo no encontrado:</p>
-            <code>\${path}</code>
-          </div>
-        </body>
-        </html>
-        \`,
-        {
-          status:404,
-          headers:{
-            'Content-Type':'text/html'
-          }
-        }
-      )
-    );
-
-  });
-  `;
-
-  const blob = new Blob(
-    [swCode],
-    { type:'application/javascript' }
-  );
-
-  const swURL = URL.createObjectURL(blob);
-
-  currentSWRegistration = await navigator.serviceWorker.register(
-    swURL,
-    {
-      scope:'./'
-    }
-  );
-
-  await navigator.serviceWorker.ready;
-
-  swStatus.textContent = 'Activo';
-  swStatus.className = 'success';
-
-  log('Service Worker registrado', 'success');
-
-  const filesToSend = {};
-
-  for(const [path,file] of Object.entries(virtualFS)){
-
-    if(file.type === 'text'){
-
-      filesToSend[path] = file;
-
-    }else{
-
-      filesToSend[path] = {
-        type:'blob',
-        mime:file.mime,
-        objectURL:URL.createObjectURL(file.content)
-      };
-
-    }
-
-  }
-
-  await new Promise((resolve)=>{
-
-    navigator.serviceWorker.addEventListener('message', function handler(event){
-
-      if(event.data.type === 'FILES_READY'){
-
-        navigator.serviceWorker.removeEventListener('message', handler);
-
-        resolve();
-
-      }
-
-    });
-
-    navigator.serviceWorker.controller?.postMessage({
-      type:'SET_FILES',
-      files:filesToSend
-    });
-
-    if(!navigator.serviceWorker.controller){
-
-      navigator.serviceWorker.ready.then(reg => {
-
-        reg.active.postMessage({
-          type:'SET_FILES',
-          files:filesToSend
-        });
-
-      });
-
-    }
-
-  });
-
-  log('Sistema virtual enviado al Service Worker', 'success');
-}
-
-async function loadSite(){
-
-  try{
-
-    showLoader(true);
-
-    siteStatus.textContent = 'Procesando...';
-    siteStatus.className = 'warning';
-
-    const zipFile = zipInput.files[0];
-    const files = filesInput.files;
-
-    if(zipFile){
-
-      await processZIP(zipFile);
-
-    }else if(files.length){
-
-      await processMultipleFiles(files);
-
-    }else{
-
-      throw new Error('Selecciona un ZIP o archivos.');
-    }
-
-    fileCount.textContent = Object.keys(virtualFS).length;
-
-    await registerSW();
-
-    let entryFile = 'index.html';
-
-    if(!virtualFS[entryFile]){
-
-      const htmlFiles = Object.keys(virtualFS)
-        .filter(f => f.endsWith('.html'));
-
-      if(htmlFiles.length){
-        entryFile = htmlFiles[0];
-      }
-    }
-
-    viewer.src = './' + entryFile;
-
-    siteStatus.textContent = 'Sitio cargado';
-    siteStatus.className = 'success';
-
-    log('Sitio cargado correctamente en iframe', 'success');
-
-  }catch(err){
-
-    console.error(err);
-
-    siteStatus.textContent = 'Error';
-    siteStatus.className = 'error';
-
-    log(err.message,'error');
-
-    alert(err.message);
-
-  }finally{
-
-    showLoader(false);
-
-  }
-
-}
-
-async function resetApp(){
-
-  try{
-
-    viewer.src = 'about:blank';
-
-    virtualFS = {};
-
-    fileCount.textContent = '0';
-
-    siteStatus.textContent = 'Sin sitio cargado';
-    siteStatus.className = 'warning';
-
-    if(currentSWRegistration){
-
-      await currentSWRegistration.unregister();
-
-      log('Service Worker eliminado');
-
-    }
-
-    const keys = await caches.keys();
-
-    for(const key of keys){
-      await caches.delete(key);
-    }
-
-    swStatus.textContent = 'Inactivo';
-    swStatus.className = 'warning';
-
-    zipInput.value = '';
-    filesInput.value = '';
-
-    log('Emulador reiniciado','success');
-
-  }catch(err){
-
-    log(err.message,'error');
-
-  }
-
-}
-
-loadBtn.addEventListener('click', loadSite);
-
-reloadBtn.addEventListener('click', ()=>{
-
-  try{
-    viewer.contentWindow.location.reload();
-  }catch(e){
-    viewer.src = viewer.src;
-  }
-
+  setTimeout(() => {
+    iframe.src = "/index.html";
+  }, 500);
 });
 
-resetBtn.addEventListener('click', resetApp);
+/* -----------------------------
+   RESET
+------------------------------ */
+async function resetAll() {
+  fileMap = {};
+  statusEl.textContent = "Reset...";
 
-window.addEventListener('error', e=>{
-  log('Error global: ' + e.message,'error');
-});
+  if (swRegistration) {
+    await swRegistration.unregister();
+    swRegistration = null;
+  }
 
-log('Emulador listo.');
+  iframe.src = "about:blank";
+
+  statusEl.textContent = "Estado: limpio";
+}
 </script>
 
 </body>
