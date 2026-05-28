@@ -20,9 +20,12 @@
     --red: #ef4444;
     --text: #e2e8f0;
     --muted: #64748b;
-    --device-w: 1080px;
-    --device-h: 2340px;
-    --scale: 0.32;
+    /* --device-w/h define the visual phone frame size on screen.
+       The iframe always has 390px DOM width regardless of scale,
+       so media queries always fire as on a real mobile device. */
+    --device-w: 390px;
+    --device-h: 844px;
+    --scale: 0.75;
   }
 
   html, body {
@@ -268,7 +271,7 @@
   .sb-time { font-weight: 600; }
   .sb-icons { display: flex; gap: calc(4px * var(--scale)); align-items: center; }
 
-  /* iframe container */
+  /* iframe container — clips the iframe to the phone screen area */
   .device-screen {
     width: 100%;
     height: 100%;
@@ -280,8 +283,11 @@
 
   .device-iframe {
     border: none;
-    width: var(--device-w);
-    height: var(--device-h);
+    /* CRITICAL: 390px is the DOM width the browser sees when evaluating
+       media queries. transform: scale() shrinks it visually but the
+       layout engine still uses 390px — exactly like a real mobile browser. */
+    width: 390px;
+    height: calc(var(--device-h) / var(--scale));
     transform-origin: top left;
     transform: scale(var(--scale));
     display: block;
@@ -424,7 +430,7 @@
   <header class="topbar">
     <div class="topbar-logo">Mobile<span>Dev</span>Tool</div>
     <div class="topbar-sep"></div>
-    <div class="resolution-badge"><b>1080</b> × <b>2340</b> px · Android</div>
+    <div class="resolution-badge"><b>390</b> × <b>844</b> px CSS · <b>1170</b> × <b>2532</b> físico @3x</div>
     <div class="topbar-sep"></div>
     <div class="status-dot" id="statusDot"></div>
     <span style="font-size:10px;color:var(--muted)" id="statusText">Sin proyecto</span>
@@ -453,8 +459,8 @@
       <div class="section-label">Escala del dispositivo</div>
       <div class="scale-row">
         <label>Zoom</label>
-        <input type="range" id="scaleRange" min="15" max="60" value="32" oninput="updateScale(this.value)">
-        <span class="scale-val" id="scaleVal">32%</span>
+        <input type="range" id="scaleRange" min="30" max="100" value="75" oninput="updateScale(this.value)">
+        <span class="scale-val" id="scaleVal">75%</span>
       </div>
     </div>
 
@@ -516,13 +522,15 @@
   </div>
 </div>
 
+
 <script>
 /* ════════════════════════════════════════════
    STATE
 ════════════════════════════════════════════ */
 const state = {
-  files: new Map(),      // filename → { name, blob, url, type }
+  files: new Map(),      // normalizedPath → { name, blob, url, type, rawText }
   entryFile: null,
+  processedPages: new Map(), // normalizedPath → blob URL of processed HTML
   blobUrls: [],
 };
 
@@ -586,6 +594,46 @@ function getMime(name) {
   return map[ext] || 'application/octet-stream';
 }
 
+function normalizePath(p) {
+  const parts = p.replace(/^\.?\//, '').split('/');
+  const stack = [];
+  for (const part of parts) {
+    if (part === '..') stack.pop();
+    else if (part && part !== '.') stack.push(part);
+  }
+  return stack.join('/');
+}
+
+function resolvePath(ref, fromDir) {
+  if (!ref || ref.startsWith('blob:') || ref.startsWith('data:') ||
+      ref.startsWith('http://') || ref.startsWith('https://') ||
+      ref.startsWith('//') || ref.startsWith('#') || ref.startsWith('javascript:') ||
+      ref.startsWith('mailto:') || ref.startsWith('tel:')) {
+    return null; // external or special, leave as-is
+  }
+  const base = ref.startsWith('/') ? '' : fromDir;
+  return normalizePath(base + '/' + ref.replace(/^\//, ''));
+}
+
+function lookupFile(normalizedKey) {
+  if (state.files.has(normalizedKey)) return state.files.get(normalizedKey);
+  // flat fallback: match by filename only
+  const base = normalizedKey.split('/').pop();
+  for (const [k, v] of state.files) {
+    if (k === base || k.endsWith('/' + base)) return v;
+  }
+  return null;
+}
+
+async function readAsText(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = rej;
+    r.readAsText(file);
+  });
+}
+
 async function handleFiles(fileList) {
   const files = Array.from(fileList);
   if (!files.length) return;
@@ -595,47 +643,35 @@ async function handleFiles(fileList) {
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
-    // Normalize path: strip leading / or ./
-    const rawName = (file.webkitRelativePath || file.name).replace(/^\.?\//, '');
-    
-    // Revoke old URL if exists
-    if (state.files.has(rawName)) {
-      URL.revokeObjectURL(state.files.get(rawName).url);
+    const rawName = (file.webkitRelativePath || file.name);
+    const normalized = normalizePath(rawName);
+    const mime = getMime(normalized);
+
+    if (state.files.has(normalized)) {
+      URL.revokeObjectURL(state.files.get(normalized).url);
     }
 
-    const mime = getMime(rawName);
+    const isText = /^(text\/|application\/(javascript|json))/.test(mime) ||
+                   normalized.endsWith('.html') || normalized.endsWith('.htm') || normalized.endsWith('.css');
+
+    let rawText = null;
     let blob;
-
-    // For text-based files, we'll patch URLs after loading
-    const isText = /^(text\/|application\/(javascript|json))/.test(mime) || rawName.endsWith('.html') || rawName.endsWith('.htm') || rawName.endsWith('.css');
-
     if (isText) {
-      const text = await readAsText(file);
-      blob = new Blob([text], { type: mime });
+      rawText = await readAsText(file);
+      blob = new Blob([rawText], { type: mime });
     } else {
       blob = file.slice(0, file.size, mime);
     }
 
     const url = URL.createObjectURL(blob);
-    state.files.set(rawName, { name: rawName, blob, url, type: mime, rawText: isText ? await readAsText(file) : null });
+    state.files.set(normalized, { name: normalized, blob, url, type: mime, rawText });
     fill.style.width = ((i + 1) / files.length * 100) + '%';
   }
 
   setTimeout(() => fill.style.width = '0%', 800);
-
-  // Auto-detect entry
   detectEntry();
   renderTree();
   log('ok', `${files.length} archivo(s) cargado(s)`);
-}
-
-function readAsText(file) {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(r.result);
-    r.onerror = rej;
-    r.readAsText(file);
-  });
 }
 
 function detectEntry() {
@@ -643,7 +679,6 @@ function detectEntry() {
   for (const p of priorities) {
     if (state.files.has(p)) { state.entryFile = p; return; }
   }
-  // Any html
   for (const [name] of state.files) {
     if (name.endsWith('.html') || name.endsWith('.htm')) {
       state.entryFile = name;
@@ -666,12 +701,10 @@ function renderTree() {
     return;
   }
 
-  const hint = document.getElementById('entryHint');
-  hint.style.display = state.entryFile ? 'none' : 'block';
-
+  document.getElementById('entryHint').style.display = state.entryFile ? 'none' : 'block';
   tree.innerHTML = '';
+
   const sorted = [...state.files.keys()].sort((a, b) => {
-    // HTML first
     const aH = a.endsWith('.html'), bH = b.endsWith('.html');
     if (aH && !bH) return -1;
     if (!aH && bH) return 1;
@@ -694,7 +727,7 @@ function renderTree() {
 
 function setEntry(name) {
   if (!name.endsWith('.html') && !name.endsWith('.htm')) {
-    log('warn', `"${name}" no es un HTML de entrada válido`);
+    log('warn', `"${name}" no es un archivo HTML válido`);
     return;
   }
   state.entryFile = name;
@@ -703,151 +736,328 @@ function setEntry(name) {
 }
 
 /* ════════════════════════════════════════════
-   CORE: Build virtual HTML with all refs resolved
+   ASSET RESOLUTION (CSS + binary)
 ════════════════════════════════════════════ */
-function resolveRefs(html, basePath) {
-  // We'll replace all src/href/url() references with blob: URLs
+function resolveCssContent(cssText, cssFileNormalized) {
+  const cssDir = cssFileNormalized.includes('/')
+    ? cssFileNormalized.substring(0, cssFileNormalized.lastIndexOf('/'))
+    : '';
+  return cssText.replace(/url\(\s*(['"]?)([^)'"]+)\1\s*\)/g, (m, q, ref) => {
+    const key = resolvePath(ref, cssDir);
+    if (!key) return m;
+    const entry = lookupFile(key);
+    return entry ? `url("${entry.url}")` : m;
+  });
+}
 
-  const baseDir = basePath.includes('/') ? basePath.substring(0, basePath.lastIndexOf('/') + 1) : '';
+/* ════════════════════════════════════════════
+   BUILD PROCESSED HTML
+   Pre-processes a single HTML file:
+   - inlines CSS (with resolved url())
+   - inlines JS (local only)
+   - resolves img/video/audio/etc src
+   - injects viewport + console bridge
+   - injects navigation router
+════════════════════════════════════════════ */
+function buildHtml(filePath) {
+  const entry = lookupFile(filePath);
+  if (!entry || !entry.rawText) return null;
 
-  function resolvePath(ref) {
-    if (!ref || ref.startsWith('blob:') || ref.startsWith('data:') ||
-        ref.startsWith('http://') || ref.startsWith('https://') ||
-        ref.startsWith('//') || ref.startsWith('#') || ref.startsWith('javascript:')) {
-      return ref;
-    }
-    // Normalize
-    let resolved;
-    if (ref.startsWith('/')) {
-      resolved = ref.slice(1); // absolute from root
+  const fileDir = filePath.includes('/')
+    ? filePath.substring(0, filePath.lastIndexOf('/'))
+    : '';
+
+  let html = entry.rawText;
+
+  // ── 1. Viewport: keep the user's own meta viewport exactly as-is.
+  // The iframe is sized to 390px wide in the DOM, so `width=device-width`
+  // resolves to 390px and all mobile media queries fire correctly.
+  // Only inject a fallback viewport if the page has none at all.
+  if (!/<meta[^>]*name\s*=\s*['"]viewport['"][^>]*>/i.test(html)) {
+    const vpTag = '<meta name="viewport" content="width=device-width, initial-scale=1.0">';
+    if (/<head(\s[^>]*)?>/i.test(html)) {
+      html = html.replace(/(<head(\s[^>]*)?>)/i, `$1\n  ${vpTag}`);
     } else {
-      resolved = baseDir + ref;
+      html = `<head>${vpTag}</head>\n` + html;
     }
-    // Normalize ".." and "."
-    const parts = resolved.split('/');
-    const stack = [];
-    for (const p of parts) {
-      if (p === '..') stack.pop();
-      else if (p !== '.') stack.push(p);
-    }
-    resolved = stack.join('/');
-
-    const entry = state.files.get(resolved);
-    if (entry) return entry.url;
-
-    // Try without leading folder (flat fallback)
-    const base = resolved.split('/').pop();
-    for (const [k, v] of state.files) {
-      if (k.endsWith('/' + base) || k === base) return v.url;
-    }
-
-    log('warn', `No encontrado: ${ref}`);
-    return ref;
   }
 
-  // Resolve CSS files (inline their content with resolved sub-references)
-  function resolveCssContent(cssText, cssPath) {
-    const cssDir = cssPath.includes('/') ? cssPath.substring(0, cssPath.lastIndexOf('/') + 1) : '';
-    // url() in CSS
-    return cssText.replace(/url\(\s*(['"]?)([^)'"]+)\1\s*\)/g, (m, q, ref) => {
-      let resolved;
-      if (ref.startsWith('data:') || ref.startsWith('blob:') || ref.startsWith('http') || ref.startsWith('//')) {
-        return m;
-      }
-      if (ref.startsWith('/')) resolved = ref.slice(1);
-      else resolved = cssDir + ref;
-      const parts = resolved.split('/');
-      const stack = [];
-      for (const p of parts) {
-        if (p === '..') stack.pop();
-        else if (p !== '.') stack.push(p);
-      }
-      resolved = stack.join('/');
-      const entry = state.files.get(resolved);
-      if (entry) return `url("${entry.url}")`;
-      const base = resolved.split('/').pop();
-      for (const [k, v] of state.files) {
-        if (k.endsWith('/' + base) || k === base) return `url("${v.url}")`;
-      }
-      return m;
-    });
-  }
-
-  // Inline external CSS <link> tags
-  html = html.replace(/<link([^>]*?)href\s*=\s*(['"])([^'"]+)\2([^>]*?)>/gi, (m, pre, q, href, post) => {
+  // ── 2. Inline external CSS ────────────────────────────────────────────────
+  html = html.replace(/<link([^>]*?)href\s*=\s*(['"])([^'"]+)\2([^>]*?)\/?>/gi, (m, pre, q, href, post) => {
     if (!href.endsWith('.css')) return m;
-    const resolved = resolveFilePath(href, baseDir);
-    const entry = state.files.get(resolved);
-    if (entry && entry.rawText) {
-      const cssContent = resolveCssContent(entry.rawText, resolved);
-      return `<style>/* inlined: ${href} */\n${cssContent}</style>`;
+    const key = resolvePath(href, fileDir);
+    if (!key) return m;
+    const f = lookupFile(key);
+    if (f && f.rawText) {
+      return `<style>/* ${href} */\n${resolveCssContent(f.rawText, key)}</style>`;
     }
     return m;
   });
 
-  // Inline external JS <script src> tags
+  // ── 3. Inline external JS (local only) ───────────────────────────────────
   html = html.replace(/<script([^>]*?)src\s*=\s*(['"])([^'"]+)\2([^>]*?)>/gi, (m, pre, q, src, post) => {
-    if (src.startsWith('http') || src.startsWith('//')) return m; // keep CDN
-    const resolved = resolveFilePath(src, baseDir);
-    const entry = state.files.get(resolved);
-    if (entry && entry.rawText) {
-      // Remove src attr, inline
-      return `<script${pre}${post}>/* inlined: ${src} */\n${entry.rawText}\n//`;
+    if (src.startsWith('http') || src.startsWith('//')) return m; // CDN: keep
+    const key = resolvePath(src, fileDir);
+    if (!key) return m;
+    const f = lookupFile(key);
+    if (f && f.rawText) {
+      // strip type="module" incompatibilities when inlining
+      const attrs = (pre + post).replace(/\s*type\s*=\s*['"]module['"]/gi, '');
+      return `<script${attrs}>/* ${src} */\n${f.rawText}\n//`;
     }
     return m;
   });
 
-  // src attributes (img, video, audio, iframe, source)
-  html = html.replace(/(<(?:img|video|audio|source|iframe|embed|track|input)[^>]*?\s)src\s*=\s*(['"])([^'"]+)\2/gi,
-    (m, tag, q, src) => `${tag}src=${q}${resolvePath(src)}${q}`);
+  // ── 4. Resolve src on media elements ─────────────────────────────────────
+  html = html.replace(/(<(?:img|video|audio|source|embed|track)[^>]*?\s)src\s*=\s*(['"])([^'"]+)\2/gi,
+    (m, tag, q, src) => {
+      const key = resolvePath(src, fileDir);
+      if (!key) return m;
+      const f = lookupFile(key);
+      return f ? `${tag}src=${q}${f.url}${q}` : m;
+    });
 
-  // href on <a> only if it's a local html
-  html = html.replace(/(<a[^>]*?\s)href\s*=\s*(['"])([^'"]+)\2/gi, (m, tag, q, href) => {
-    if (href.endsWith('.html') || href.endsWith('.htm')) {
-      return `${tag}href=${q}${resolvePath(href)}${q}`;
-    }
-    return m;
+  // ── 5. Resolve inline style url() ────────────────────────────────────────
+  html = html.replace(/<style([^>]*)>([\s\S]*?)<\/style>/gi, (m, attrs, css) => {
+    return `<style${attrs}>${resolveCssContent(css, filePath)}</style>`;
+  });
+  html = html.replace(/(\s)style\s*=\s*(['"])([\s\S]*?)\2/gi, (m, space, q, style) => {
+    const patched = style.replace(/url\(\s*(['"]?)([^)'"]+)\1\s*\)/g, (um, uq, ref) => {
+      const key = resolvePath(ref, fileDir);
+      if (!key) return um;
+      const f = lookupFile(key);
+      return f ? `url("${f.url}")` : um;
+    });
+    return `${space}style=${q}${patched}${q}`;
   });
 
-  // srcset
+  // ── 6. Resolve srcset ─────────────────────────────────────────────────────
   html = html.replace(/srcset\s*=\s*(['"])([^'"]+)\1/gi, (m, q, val) => {
-    const replaced = val.replace(/([^\s,]+)(\s+\d+[wx])?/g, (sm, url, descriptor) => {
-      return resolvePath(url) + (descriptor || '');
+    const replaced = val.replace(/([^\s,]+)(\s+[\d.]+[wx])?/g, (sm, url, desc) => {
+      const key = resolvePath(url, fileDir);
+      if (!key) return sm;
+      const f = lookupFile(key);
+      return (f ? f.url : url) + (desc || '');
     });
     return `srcset=${q}${replaced}${q}`;
   });
 
-  // Inline <style> url() references
-  html = html.replace(/<style([^>]*)>([\s\S]*?)<\/style>/gi, (m, attrs, css) => {
-    return `<style${attrs}>${resolveCssContent(css, basePath)}</style>`; 
+  // ── 7. Resolve data-src ───────────────────────────────────────────────────
+  html = html.replace(/data-src\s*=\s*(['"])([^'"]+)\1/gi, (m, q, src) => {
+    const key = resolvePath(src, fileDir);
+    if (!key) return m;
+    const f = lookupFile(key);
+    return f ? `data-src=${q}${f.url}${q}` : m;
   });
 
-  // style="background: url(...)" inline styles
-  html = html.replace(/style\s*=\s*(['"])([\s\S]*?)\1/gi, (m, q, style) => {
-    const patched = style.replace(/url\(\s*(['"]?)([^)'"]+)\1\s*\)/g, (um, uq, ref) => {
-      return `url("${resolvePath(ref)}")`;
+  // ── 8. Resolve favicon / og:image / apple-touch-icon ─────────────────────
+  html = html.replace(/(<link[^>]*?href\s*=\s*['"])([^'"]+)(['"][^>]*>)/gi, (m, pre, href, post) => {
+    if (href.endsWith('.css') || href.startsWith('http') || href.startsWith('//') || href.startsWith('blob:') || href.startsWith('data:')) return m;
+    const key = resolvePath(href, fileDir);
+    if (!key) return m;
+    const f = lookupFile(key);
+    return f ? `${pre}${f.url}${post}` : m;
+  });
+
+  // ── 9. Build page map for navigation (all HTML files in project) ──────────
+  // Map: originalFilename → blobUrl of processed version
+  // This is injected as a JS object so the router inside the iframe can use it.
+  const pageMapEntries = [];
+  for (const [k] of state.files) {
+    if (k.endsWith('.html') || k.endsWith('.htm')) {
+      // We store the path key; at runtime the router calls parent.__devGetPage(path)
+      pageMapEntries.push(JSON.stringify(k));
+    }
+  }
+
+  // ── 10. Inject console bridge + navigation router ─────────────────────────
+  // The router intercepts ALL <a> clicks. If the href is a local HTML,
+  // it asks the parent frame to serve the processed version instead of navigating.
+  const injectedScript = `<script>
+(function(){
+  /* ── Console bridge ── */
+  function _send(type, args) {
+    try {
+      const msg = Array.from(args).map(a => {
+        try { return typeof a === 'object' ? JSON.stringify(a) : String(a); } catch(e) { return String(a); }
+      }).join(' ');
+      window.parent.postMessage({ __mobiledev: true, type, msg }, '*');
+    } catch(e) {}
+  }
+  const _c = { log: console.log, warn: console.warn, error: console.error, info: console.info };
+  console.log   = (...a) => { _c.log(...a);   _send('info',  a); };
+  console.warn  = (...a) => { _c.warn(...a);  _send('warn',  a); };
+  console.error = (...a) => { _c.error(...a); _send('error', a); };
+  console.info  = (...a) => { _c.info(...a);  _send('info',  a); };
+  window.onerror = (msg, src, line, col) => _send('error', [msg + ' (L' + line + ':' + col + ')']);
+  window.onunhandledrejection = e => _send('error', ['Promise: ' + e.reason]);
+
+  /* ── Navigation router ── */
+  // Known local HTML files in this project
+  const _htmlFiles = new Set([${pageMapEntries.join(',')}]);
+
+  function _normalizePath(p) {
+    var parts = p.replace(/^[./]+/, '').split('/');
+    var stack = [];
+    for (var i = 0; i < parts.length; i++) {
+      if (parts[i] === '..') stack.pop();
+      else if (parts[i] && parts[i] !== '.') stack.push(parts[i]);
+    }
+    return stack.join('/');
+  }
+
+  function _isLocalHtml(href) {
+    if (!href || href.startsWith('http') || href.startsWith('//') ||
+        href.startsWith('#') || href.startsWith('javascript:') ||
+        href.startsWith('mailto:') || href.startsWith('tel:') ||
+        href.startsWith('blob:') || href.startsWith('data:')) return false;
+    var clean = href.split('?')[0].split('#')[0];
+    return clean.endsWith('.html') || clean.endsWith('.htm');
+  }
+
+  function _resolveHref(href, currentSrc) {
+    var parts = href.split('#');
+    var path = parts[0];
+    var hash = parts[1] ? '#' + parts[1] : '';
+    var base = currentSrc && currentSrc.includes('/')
+      ? currentSrc.substring(0, currentSrc.lastIndexOf('/'))
+      : '';
+    if (path.startsWith('/')) base = '';
+    return _normalizePath(base + '/' + path.replace(/^\//, '')) + hash;
+  }
+
+  // Intercept clicks anywhere in the document (handles dynamically added links too)
+  document.addEventListener('click', function(e) {
+    var el = e.target;
+    // Walk up the DOM to find an <a> tag
+    while (el && el.tagName !== 'A') el = el.parentElement;
+    if (!el) return;
+
+    var href = el.getAttribute('href');
+    if (!_isLocalHtml(href)) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    var currentPage = window.__currentPage || '';
+    var targetPath = _resolveHref(href, currentPage);
+
+    _send('info', ['→ Navegando a: ' + targetPath]);
+    window.parent.postMessage({ __mobiledev_navigate: true, path: targetPath }, '*');
+  }, true);
+
+  // Also intercept window.location assignments and history.pushState
+  // for SPA-style navigation
+  try {
+    var _origAssign = window.location.assign.bind(window.location);
+    var _origReplace = window.location.replace.bind(window.location);
+    Object.defineProperty(window, 'location', {
+      get: function() { return window._fakeLocation || location; },
+      configurable: true
     });
-    return `style=${q}${patched}${q}`;
-  });
+  } catch(e) {}
 
-  // data-src (lazy loading)
-  html = html.replace(/data-src\s*=\s*(['"])([^'"]+)\1/gi,
-    (m, q, src) => `data-src=${q}${resolvePath(src)}${q}`);
+}());
+<\/script>`;
+
+  // Inject before </head>
+  if (html.includes('</head>')) {
+    html = html.replace('</head>', injectedScript + '\n</head>');
+  } else if (/<body(\s[^>]*)?>/i.test(html)) {
+    html = html.replace(/(<body(\s[^>]*)?>)/i, injectedScript + '\n$1');
+  } else {
+    html = injectedScript + '\n' + html;
+  }
 
   return html;
 }
 
-function resolveFilePath(ref, baseDir) {
-  if (ref.startsWith('/')) return ref.slice(1);
-  const combined = baseDir + ref;
-  const parts = combined.split('/');
-  const stack = [];
-  for (const p of parts) {
-    if (p === '..') stack.pop();
-    else if (p !== '.') stack.push(p);
+/* ════════════════════════════════════════════
+   PRE-PROCESS ALL HTML PAGES
+   Called before launch so every page is ready
+════════════════════════════════════════════ */
+function preprocessAllPages() {
+  // Revoke old processed page blobs
+  for (const url of state.processedPages.values()) URL.revokeObjectURL(url);
+  state.processedPages.clear();
+
+  for (const [path] of state.files) {
+    if (!path.endsWith('.html') && !path.endsWith('.htm')) continue;
+    const processed = buildHtml(path);
+    if (!processed) continue;
+    const blob = new Blob([processed], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    state.processedPages.set(path, url);
+    state.blobUrls.push(url);
   }
-  return stack.join('/');
+
+  log('info', `${state.processedPages.size} página(s) procesada(s)`);
 }
+
+/* ════════════════════════════════════════════
+   NAVIGATION MESSAGE FROM IFRAME
+════════════════════════════════════════════ */
+window.addEventListener('message', (e) => {
+  if (!e.data) return;
+
+  if (e.data.__mobiledev) {
+    log(e.data.type, e.data.msg);
+    return;
+  }
+
+  if (e.data.__mobiledev_navigate) {
+    const targetPath = e.data.path;
+    navigateTo(targetPath);
+  }
+});
+
+function navigateTo(path) {
+  // Exact match
+  let url = state.processedPages.get(path);
+
+  // Strip hash for lookup
+  const pathNoHash = path.split('#')[0];
+  if (!url) url = state.processedPages.get(pathNoHash);
+
+  // Flat fallback: match filename only
+  if (!url) {
+    const base = pathNoHash.split('/').pop();
+    for (const [k, v] of state.processedPages) {
+      if (k === base || k.endsWith('/' + base)) { url = v; break; }
+    }
+  }
+
+  if (!url) {
+    log('error', `Página no encontrada: ${path}`);
+    return;
+  }
+
+  const iframe = document.getElementById('deviceIframe');
+  // Inject __currentPage so the router inside knows the current path
+  const finalUrl = url + (path.includes('#') ? path.substring(path.indexOf('#')) : '');
+
+  // We use srcdoc to avoid a full navigation and inject __currentPage
+  // Actually use src + postMessage after load
+  iframe.src = finalUrl;
+  iframe.onload = () => {
+    try {
+      iframe.contentWindow.postMessage({ __mobiledev_setpage: true, path: pathNoHash }, '*');
+    } catch(e) {}
+    iframe.onload = null;
+  };
+
+  document.getElementById('statusText').textContent = pathNoHash.split('/').pop() || pathNoHash;
+  log('ok', `Cargado: ${pathNoHash}`);
+}
+
+// Listen for setpage inside iframe
+window.addEventListener('message', (e) => {
+  if (e.data && e.data.__mobiledev_setpage) {
+    try {
+      document.getElementById('deviceIframe').contentWindow.__currentPage = e.data.path;
+    } catch(ex) {}
+  }
+});
 
 /* ════════════════════════════════════════════
    LAUNCH PROJECT
@@ -859,82 +1069,37 @@ function launchProject() {
     return;
   }
 
-  const entry = state.files.get(state.entryFile);
-  if (!entry) { log('error', 'Archivo de entrada no encontrado.'); return; }
-  if (!entry.rawText) { log('error', 'No se pudo leer el HTML de entrada.'); return; }
+  log('info', 'Procesando archivos...');
 
-  log('info', `Cargando: ${state.entryFile}`);
-
-  // Revoke old blob URLs we created
   state.blobUrls.forEach(u => URL.revokeObjectURL(u));
   state.blobUrls = [];
 
-  let html = entry.rawText;
+  preprocessAllPages();
 
-  // Inject console interceptor
-  const consoleScript = `<script>
-(function(){
-  function send(type, args) {
-    try {
-      const msg = Array.from(args).map(a => {
-        try { return typeof a === 'object' ? JSON.stringify(a) : String(a); } catch(e) { return String(a); }
-      }).join(' ');
-      window.parent.postMessage({ __mobiledev: true, type, msg }, '*');
-    } catch(e) {}
+  const entryUrl = state.processedPages.get(state.entryFile);
+  if (!entryUrl) {
+    log('error', 'No se pudo procesar el archivo de entrada.');
+    return;
   }
-  const orig = { log: console.log, warn: console.warn, error: console.error, info: console.info };
-  console.log = (...a) => { orig.log(...a); send('info', a); };
-  console.warn = (...a) => { orig.warn(...a); send('warn', a); };
-  console.error = (...a) => { orig.error(...a); send('error', a); };
-  console.info = (...a) => { orig.info(...a); send('info', a); };
-  window.onerror = (msg, src, line, col) => {
-    send('error', [\`\${msg} (line \${line}:\${col})\`]);
-  };
-  window.onunhandledrejection = (e) => {
-    send('error', [\`Unhandled Promise: \${e.reason}\`]);
-  };
-}());
-<\/script>`;
-
-  // Inject before </head> or at start
-  if (html.includes('</head>')) {
-    html = html.replace('</head>', consoleScript + '</head>');
-  } else if (html.includes('<body>')) {
-    html = html.replace('<body>', consoleScript + '<body>');
-  } else {
-    html = consoleScript + html;
-  }
-
-  // Resolve all references
-  html = resolveRefs(html, state.entryFile);
-
-  // Create blob URL for the final HTML
-  const blob = new Blob([html], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  state.blobUrls.push(url);
 
   const iframe = document.getElementById('deviceIframe');
-  iframe.src = url;
+  iframe.src = entryUrl;
+  iframe.onload = () => {
+    try {
+      iframe.contentWindow.__currentPage = state.entryFile;
+    } catch(e) {}
+    iframe.onload = null;
+  };
 
   document.getElementById('emptyOverlay').classList.add('hidden');
   document.getElementById('statusDot').classList.add('active');
   document.getElementById('statusText').textContent = state.entryFile;
-
-  log('ok', `Proyecto cargado · ${state.files.size} archivos en memoria`);
+  log('ok', `Proyecto en vivo · ${state.files.size} archivos · ${state.processedPages.size} páginas`);
 }
 
 function reloadDevice() {
   launchProject();
 }
-
-/* ════════════════════════════════════════════
-   CONSOLE FROM IFRAME
-════════════════════════════════════════════ */
-window.addEventListener('message', (e) => {
-  if (e.data && e.data.__mobiledev) {
-    log(e.data.type, e.data.msg);
-  }
-});
 
 /* ════════════════════════════════════════════
    CONSOLE UI
@@ -965,8 +1130,10 @@ function clearConsole() {
 ════════════════════════════════════════════ */
 function clearAll() {
   state.files.forEach(f => URL.revokeObjectURL(f.url));
+  for (const u of state.processedPages.values()) URL.revokeObjectURL(u);
   state.blobUrls.forEach(u => URL.revokeObjectURL(u));
   state.files.clear();
+  state.processedPages.clear();
   state.entryFile = null;
   state.blobUrls = [];
 
@@ -985,6 +1152,7 @@ function clearAll() {
    INIT
 ════════════════════════════════════════════ */
 log('info', 'MobileDevTool listo · Sube tus archivos HTML/CSS/JS');
+
 </script>
 </body>
 </html>
