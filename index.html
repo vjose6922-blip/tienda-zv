@@ -2,97 +2,79 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Mobile Emulator 1080x2340</title>
+<title>Mobile Emulator Fixed</title>
 
 <style>
-  body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #0f0f14;
-    color: white;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px;
-  }
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0f0f14;
+  color:white;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:20px;
+}
 
-  .topbar {
-    width: 100%;
-    max-width: 1200px;
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-bottom: 15px;
-  }
+.topbar{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:10px;
+}
 
-  button {
-    padding: 10px 15px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    background: #2b2b3a;
-    color: white;
-  }
+button{
+  padding:10px;
+  border:0;
+  border-radius:8px;
+  cursor:pointer;
+  background:#2a2a3a;
+  color:white;
+}
 
-  button:hover {
-    background: #3a3a52;
-  }
+input{
+  color:white;
+}
 
-  input {
-    color: white;
-  }
+.status{
+  font-size:14px;
+  opacity:.8;
+  margin-bottom:10px;
+}
 
-  .status {
-    margin-top: 10px;
-    font-size: 14px;
-    opacity: 0.8;
-  }
+.device{
+  width:1080px;
+  height:2340px;
+  background:#111;
+  border-radius:40px;
+  padding:15px;
+  box-shadow:0 0 40px rgba(0,0,0,.7);
+  position:relative;
+}
 
-  /* Mobile frame */
-  .device {
-    width: 1080px;
-    height: 2340px;
-    border-radius: 60px;
-    background: #111;
-    box-shadow: 0 0 50px rgba(0,0,0,0.8);
-    padding: 20px;
-    position: relative;
-  }
-
-  iframe {
-    width: 1080px;
-    height: 2340px;
-    border: none;
-    border-radius: 40px;
-    background: white;
-  }
-
-  .notch {
-    position: absolute;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 300px;
-    height: 30px;
-    background: black;
-    border-radius: 20px;
-  }
+iframe{
+  width:1080px;
+  height:2340px;
+  border:0;
+  border-radius:30px;
+  background:white;
+}
 </style>
 </head>
 
 <body>
 
-<h2>📱 Mobile Emulator 1080×2340</h2>
+<h2>📱 Emulator FIX 1080x2340</h2>
 
 <div class="topbar">
-  <input type="file" id="zipInput" accept=".zip" />
+  <input type="file" id="zipInput" accept=".zip">
+  <input type="file" id="multiInput" multiple webkitdirectory>
   <button onclick="resetAll()">Reset</button>
 </div>
 
-<div class="status" id="status">Estado: esperando archivos...</div>
+<div class="status" id="status">Esperando archivos...</div>
 
 <div class="device">
-  <div class="notch"></div>
   <iframe id="screen"></iframe>
 </div>
 
@@ -100,156 +82,148 @@
 
 <script>
 let fileMap = {};
-let swRegistration = null;
+let swReg = null;
 
 const statusEl = document.getElementById("status");
 const iframe = document.getElementById("screen");
 
-/* -----------------------------
-   SERVICE WORKER BLOB
------------------------------- */
-function createSW() {
-  const swCode = `
-    let files = {};
+/* ---------------- SW ---------------- */
+function makeSW(){
+const code = `
+let files = {};
 
-    self.addEventListener('message', e => {
-      if (e.data.type === 'FILES') {
-        files = e.data.files || {};
-      }
-    });
+self.addEventListener('message', e=>{
+  if(e.data.type==='FILES'){
+    files = e.data.files;
+  }
+});
 
-    function getMime(path) {
-      if (path.endsWith('.html')) return 'text/html';
-      if (path.endsWith('.css')) return 'text/css';
-      if (path.endsWith('.js')) return 'application/javascript';
-      if (path.endsWith('.png')) return 'image/png';
-      if (path.endsWith('.jpg') || path.endsWith('.jpeg')) return 'image/jpeg';
-      if (path.endsWith('.svg')) return 'image/svg+xml';
-      return 'text/plain';
-    }
-
-    self.addEventListener('fetch', event => {
-      let url = new URL(event.request.url);
-      let path = url.pathname;
-
-      if (path === '/') path = '/index.html';
-
-      if (files[path]) {
-        let res = files[path];
-
-        let response;
-
-        if (typeof res === 'string') {
-          response = new Response(res, {
-            headers: { 'Content-Type': getMime(path) }
-          });
-        } else {
-          response = new Response(res, {
-            headers: { 'Content-Type': getMime(path) }
-          });
-        }
-
-        event.respondWith(response);
-        return;
-      }
-
-      event.respondWith(
-        new Response('404 Not Found: ' + path, {
-          status: 404,
-          headers: { 'Content-Type': 'text/plain' }
-        })
-      );
-    });
-  `;
-
-  const blob = new Blob([swCode], { type: "application/javascript" });
-  return URL.createObjectURL(blob);
+function mime(p){
+  if(p.endsWith('.html')) return 'text/html';
+  if(p.endsWith('.css')) return 'text/css';
+  if(p.endsWith('.js')) return 'application/javascript';
+  if(p.endsWith('.png')) return 'image/png';
+  if(p.endsWith('.jpg')) return 'image/jpeg';
+  return 'text/plain';
 }
 
-/* -----------------------------
-   REGISTER SW
------------------------------- */
-async function registerSW(files) {
-  const swUrl = createSW();
+self.addEventListener('fetch', e=>{
+  let url = new URL(e.request.url);
+  let path = url.pathname;
 
-  if (swRegistration) {
-    await swRegistration.unregister();
+  if(path === '/') path = '/index.html';
+
+  if(files[path]){
+    e.respondWith(new Response(files[path],{
+      headers:{'Content-Type':mime(path)}
+    }));
+    return;
   }
 
-  swRegistration = await navigator.serviceWorker.register(swUrl);
+  e.respondWith(new Response("404 "+path,{status:404}));
+});
+`;
 
+return URL.createObjectURL(new Blob([code],{type:"application/javascript"}));
+}
+
+/* ---------------- SW REGISTER ---------------- */
+async function registerSW(){
+  const swUrl = makeSW();
+
+  if(swReg){
+    await swReg.unregister();
+  }
+
+  swReg = await navigator.serviceWorker.register(swUrl);
   await navigator.serviceWorker.ready;
 
   navigator.serviceWorker.controller?.postMessage({
-    type: "FILES",
-    files
+    type:"FILES",
+    files:fileMap
   });
 
-  statusEl.textContent = "Estado: SW activo + archivos cargados";
+  statusEl.innerText = "SW activo ✔";
 }
 
-/* -----------------------------
-   LOAD ZIP
------------------------------- */
-document.getElementById("zipInput").addEventListener("change", async (e) => {
+/* ---------------- ZIP LOAD ---------------- */
+document.getElementById("zipInput").addEventListener("change", async (e)=>{
   const file = e.target.files[0];
-  if (!file) return;
+  if(!file) return;
 
-  statusEl.textContent = "Descomprimiendo ZIP...";
+  statusEl.innerText = "Leyendo ZIP...";
 
   const zip = await JSZip.loadAsync(file);
+
   fileMap = {};
 
-  const promises = [];
+  const tasks = [];
 
-  zip.forEach((relativePath, zipEntry) => {
-    if (!zipEntry.dir) {
-      const p = zipEntry.async("blob").then(content => {
-        const path = "/" + relativePath;
+  zip.forEach((path, entry)=>{
+    if(!entry.dir){
+      const fullPath = "/" + path;
 
-        // detect text or binary
-        if (
-          path.endsWith(".html") ||
-          path.endsWith(".css") ||
-          path.endsWith(".js")
-        ) {
-          fileMap[path] = null;
-          return zipEntry.async("text").then(t => fileMap[path] = t);
-        } else {
-          fileMap[path] = content;
-        }
+      const t = entry.async("text").then(data=>{
+        fileMap[fullPath]=data;
       });
 
-      promises.push(p);
+      tasks.push(t);
     }
   });
 
-  await Promise.all(promises);
+  await Promise.all(tasks);
 
-  await registerSW(fileMap);
+  statusEl.innerText = "ZIP listo ✔ registrando SW...";
 
-  statusEl.textContent = "Estado: cargando app...";
+  await registerSW();
 
-  setTimeout(() => {
-    iframe.src = "/index.html";
-  }, 500);
+  iframe.src = "/index.html";
+
+  statusEl.innerText = "Sitio cargado ✔";
 });
 
-/* -----------------------------
-   RESET
------------------------------- */
-async function resetAll() {
-  fileMap = {};
-  statusEl.textContent = "Reset...";
+/* ---------------- MULTI FILE ---------------- */
+document.getElementById("multiInput").addEventListener("change",(e)=>{
+  const files = [...e.target.files];
 
-  if (swRegistration) {
-    await swRegistration.unregister();
-    swRegistration = null;
+  fileMap = {};
+
+  let count = 0;
+
+  files.forEach(f=>{
+    const reader = new FileReader();
+
+    reader.onload = ()=>{
+      const path = "/" + (f.webkitRelativePath || f.name);
+      fileMap[path] = reader.result;
+
+      count++;
+
+      if(count === files.length){
+        statusEl.innerText = "Carpeta cargada ✔ registrando SW...";
+        registerSW().then(()=>{
+          iframe.src="/index.html";
+          statusEl.innerText="Sitio cargado ✔";
+        });
+      }
+    };
+
+    reader.readAsText(f);
+  });
+});
+
+/* ---------------- RESET ---------------- */
+async function resetAll(){
+  fileMap = {};
+  iframe.src="about:blank";
+  statusEl.innerText="Reset...";
+
+  if(swReg){
+    await swReg.unregister();
+    swReg=null;
   }
 
-  iframe.src = "about:blank";
-
-  statusEl.textContent = "Estado: limpio";
+  statusEl.innerText="Limpio ✔";
 }
 </script>
 
