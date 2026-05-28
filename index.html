@@ -20,12 +20,9 @@
     --red: #ef4444;
     --text: #e2e8f0;
     --muted: #64748b;
-    /* Logical CSS viewport: 390×844 (iPhone 14 / Android equiv.)
-       Media queries fire correctly at this size.
-       We scale the frame visually to look like a tall phone on screen. */
-    --device-w: 390px;
-    --device-h: 844px;
-    --scale: 0.85;
+    --device-w: 1080px;
+    --device-h: 2340px;
+    --scale: 0.32;
   }
 
   html, body {
@@ -427,7 +424,7 @@
   <header class="topbar">
     <div class="topbar-logo">Mobile<span>Dev</span>Tool</div>
     <div class="topbar-sep"></div>
-    <div class="resolution-badge"><b>390</b> × <b>844</b> px CSS · <b>1170</b> × <b>2532</b> físico @3x</div>
+    <div class="resolution-badge"><b>1080</b> × <b>2340</b> px · Android</div>
     <div class="topbar-sep"></div>
     <div class="status-dot" id="statusDot"></div>
     <span style="font-size:10px;color:var(--muted)" id="statusText">Sin proyecto</span>
@@ -456,8 +453,8 @@
       <div class="section-label">Escala del dispositivo</div>
       <div class="scale-row">
         <label>Zoom</label>
-        <input type="range" id="scaleRange" min="30" max="100" value="85" oninput="updateScale(this.value)">
-        <span class="scale-val" id="scaleVal">85%</span>
+        <input type="range" id="scaleRange" min="15" max="60" value="32" oninput="updateScale(this.value)">
+        <span class="scale-val" id="scaleVal">32%</span>
       </div>
     </div>
 
@@ -873,28 +870,6 @@ function launchProject() {
   state.blobUrls = [];
 
   let html = entry.rawText;
-
-  // ── FIX MEDIA QUERIES ──────────────────────────────────────────────────────
-  // The iframe is physically 1080px wide, so the browser sees 1080px and never
-  // triggers mobile media queries (max-width: 768px, etc.).
-  // Solution: replace the meta viewport so the page believes its viewport is
-  // 390px wide (standard mobile CSS viewport), then the browser scales content
-  // to fit 1080 physical pixels → scale factor ≈ 2.77 (like a real phone DPR).
-  // This is exactly what Chrome DevTools does internally.
-  const mobileViewport = '<meta name="viewport" content="width=390, initial-scale=1.0, maximum-scale=5.0">';
-
-  // Remove any existing viewport meta tags first
-  html = html.replace(/<meta[^>]*name\s*=\s*['"]viewport['"][^>]*>/gi, '');
-
-  // Inject our mobile viewport right after <head> or <html> or at the start
-  if (/<head(\s[^>]*)?>/i.test(html)) {
-    html = html.replace(/(<head(\s[^>]*)?>)/i, `$1\n  ${mobileViewport}`);
-  } else if (/<html(\s[^>]*)?>/i.test(html)) {
-    html = html.replace(/(<html(\s[^>]*)?>)/i, `$1\n<head>${mobileViewport}</head>`);
-  } else {
-    html = `<head>${mobileViewport}</head>\n` + html;
-  }
-  // ──────────────────────────────────────────────────────────────────────────
 
   // Inject console interceptor
   const consoleScript = `<script>
