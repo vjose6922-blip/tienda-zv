@@ -2415,6 +2415,11 @@ function setEntry(name) {
   entryFile = name;
   updateFileTree();
   addConsoleEntry('info', ['Archivo de entrada: ' + name]);
+  
+  // --- AÑADIR ESTAS LÍNEAS ---
+  if (previewVisible) {
+    runPreview();  // actualiza la vista previa automáticamente
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2847,7 +2852,6 @@ function runPreview() {
     }
   });
 
-  detectEntry();
   if (!entryFile) {
     addConsoleEntry('warn', ['No hay archivo HTML de entrada. Crea o selecciona uno.']);
     document.getElementById('deviceEmpty').classList.remove('hidden');
