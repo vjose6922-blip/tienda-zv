@@ -2415,13 +2415,12 @@ function setEntry(name) {
   entryFile = name;
   updateFileTree();
   addConsoleEntry('info', ['Archivo de entrada: ' + name]);
-  
-  // --- AÑADIR ESTAS LÍNEAS ---
+
+  // --- NUEVO: Si la vista previa está abierta, la actualiza ---
   if (previewVisible) {
-    runPreview();  // actualiza la vista previa automáticamente
+    runPreview();
   }
 }
-
 // ═══════════════════════════════════════════════════════════
 //  FILE TREE (side bar)
 // ═══════════════════════════════════════════════════════════
@@ -2463,6 +2462,19 @@ function updateFileTree() {
         else addConsoleEntry('info', ['Archivo binario: ' + name]);
       }
     };
+item.ondblclick = function() {
+  if (name.endsWith('.html') || name.endsWith('.htm')) {
+    setEntry(name);               // marca como entrada (ya actualiza el árbol)
+    if (!previewVisible) {        // si la preview no está abierta, la abre
+      togglePreview();            // esto llamará a runPreview automáticamente
+    }
+    // Si ya estaba abierta, setEntry() ya llamó a runPreview (por el cambio anterior)
+  }
+};
+
+
+
+    
     item.oncontextmenu = (e) => {
       e.preventDefault();
       // menú contextual: marcar entry, eliminar, etc.
