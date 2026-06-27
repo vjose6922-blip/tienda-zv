@@ -1890,6 +1890,8 @@ function buildHtml(filePath) {
   const fileDir = filePath.includes('/') ? filePath.substring(0, filePath.lastIndexOf('/')) : '';
   let html = entry.rawText;
 
+  html = html.replace(/<meta[^>]*http-equiv\s*=\s*['"]Content-Security-Policy['"][^>]*>/gi, '');
+
   // 1. Viewport (solo si no existe)
   if (!/<meta[^>]*name\s*=\s*['"]viewport['"][^>]*>/i.test(html)) {
     const vpTag = '<meta name="viewport" content="width=device-width, initial-scale=1.0">';
