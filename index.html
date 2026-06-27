@@ -451,6 +451,30 @@ body {
 
 .preview-actions { display: flex; gap: 6px; }
 
+.inspector-bar {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.inspector-bar.visible { display: flex; }
+.inspector-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--accent);
+  background: var(--surface3);
+  padding: 4px 9px;
+  border-radius: 4px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Device frame */
 .device-wrapper {
   flex: 1;
@@ -515,7 +539,7 @@ body {
 .device-iframe {
   border: none;
   width: 390px;
-  height: var(--device-h);
+  height: calc(var(--device-h) / var(--scale));
   transform-origin: top left;
   transform: scale(var(--scale));
   display: block;
@@ -1466,9 +1490,14 @@ body {
           <div class="preview-actions">
             <button class="tool-btn" onclick="runPreview()" title="Actualizar">↻</button>
             <button class="tool-btn" id="btn-autorefresh" onclick="toggleAutoRefresh()" title="Auto-refresh">⚡</button>
+            <button class="tool-btn" id="btn-inspector" onclick="toggleInspector()" title="Modo inspector">🔍</button>
             <button class="tool-btn" onclick="toggleConsole()" id="btn-console">⌨</button>
             <button class="tool-btn" onclick="togglePreview()" title="Cerrar">✕</button>
           </div>
+        </div>
+        <div class="inspector-bar" id="inspectorBar">
+          <span class="inspector-tag" id="inspectorTagLabel"></span>
+          <button class="tool-btn" onclick="copyInspectorSelector()" title="Copiar selector">📋</button>
         </div>
         <div class="device-wrapper">
           <div class="device-frame" id="deviceFrame">
@@ -1975,6 +2004,73 @@ function buildHtml(filePath) {
   window.onerror = (msg, src, line, col) => _send('error', [msg + ' (L' + line + ':' + col + ')']);
   window.onunhandledrejection = e => _send('error', ['Promise: ' + e.reason]);
 
+  /* ── Inspector mode ── */
+  var _inspecting = false;
+  var _ovBox = null, _ovLabel = null;
+
+  function _ensureInspectorUI() {
+    if (_ovBox) return;
+    _ovBox = document.createElement('div');
+    _ovBox.style.cssText = 'position:fixed;pointer-events:none;z-index:2147483647;border:2px solid #00e5a0;background:rgba(0,229,160,.15);display:none;box-sizing:border-box;';
+    _ovLabel = document.createElement('div');
+    _ovLabel.style.cssText = 'position:fixed;pointer-events:none;z-index:2147483647;background:#13161e;color:#e2e8f0;font:11px/1.4 "JetBrains Mono",monospace;padding:3px 7px;border-radius:3px;display:none;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-shadow:0 2px 10px rgba(0,0,0,.5);';
+    document.documentElement.appendChild(_ovBox);
+    document.documentElement.appendChild(_ovLabel);
+  }
+
+  function _describeEl(el) {
+    var id = el.id || '';
+    var classes = (el.className && typeof el.className === 'string') ? el.className.trim().split(/\s+/).filter(Boolean) : [];
+    return { tag: el.tagName.toLowerCase(), id: id, classes: classes };
+  }
+
+  function _inspectorLabelText(info) {
+    var s = info.tag;
+    if (info.id) s += '#' + info.id;
+    if (info.classes.length) s += '.' + info.classes.join('.');
+    return s;
+  }
+
+  document.addEventListener('mousemove', function(e) {
+    if (!_inspecting) return;
+    var el = e.target;
+    if (!el || el.nodeType !== 1) return;
+    var r = el.getBoundingClientRect();
+    _ovBox.style.display = 'block';
+    _ovBox.style.left = r.left + 'px';
+    _ovBox.style.top = r.top + 'px';
+    _ovBox.style.width = r.width + 'px';
+    _ovBox.style.height = r.height + 'px';
+    _ovLabel.textContent = _inspectorLabelText(_describeEl(el));
+    _ovLabel.style.display = 'block';
+    var lx = e.clientX + 14;
+    if (lx + 260 > window.innerWidth) lx = e.clientX - 260;
+    _ovLabel.style.left = lx + 'px';
+    _ovLabel.style.top = (e.clientY + 14) + 'px';
+  }, true);
+
+  document.addEventListener('click', function(e) {
+    if (!_inspecting) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    var info = _describeEl(e.target);
+    _ovBox.style.borderColor = '#00b8ff';
+    window.parent.postMessage({ __codeforge_inspect_select: true, info: info }, '*');
+  }, true);
+
+  window.addEventListener('message', function(e) {
+    if (e.data && typeof e.data.__codeforge_inspector === 'boolean') {
+      _ensureInspectorUI();
+      _inspecting = e.data.__codeforge_inspector;
+      document.documentElement.style.cursor = _inspecting ? 'crosshair' : '';
+      if (!_inspecting) {
+        _ovBox.style.display = 'none';
+        _ovBox.style.borderColor = '#00e5a0';
+        _ovLabel.style.display = 'none';
+      }
+    }
+  });
+
   /* ── Navigation router ── */
   const _htmlFiles = new Set([${pageMapEntries.join(',')}]);
 
@@ -2075,6 +2171,10 @@ window.addEventListener('message', (e) => {
     addConsoleEntry(e.data.type, [e.data.msg]);
     return;
   }
+  if (e.data && e.data.__codeforge_inspect_select) {
+    showInspectorSelection(e.data.info);
+    return;
+  }
   if (e.data && e.data.__mobiledev_navigate) {
     navigateTo(e.data.path);
     return;
@@ -2106,6 +2206,7 @@ function navigateTo(path) {
   iframe.src = finalUrl;
   iframe.onload = () => {
     try { iframe.contentWindow.__currentPage = pathNoHash; } catch(e) {}
+    if (inspectorMode) iframe.contentWindow.postMessage({ __codeforge_inspector: true }, '*');
     iframe.onload = null;
   };
   document.getElementById('preview-entry-name').textContent = pathNoHash.split('/').pop() || pathNoHash;
@@ -2884,6 +2985,7 @@ function runPreview() {
   iframe.src = entryUrl;
   iframe.onload = () => {
     try { iframe.contentWindow.__currentPage = entryFile; } catch(e) {}
+    if (inspectorMode) iframe.contentWindow.postMessage({ __codeforge_inspector: true }, '*');
     iframe.onload = null;
   };
   document.getElementById('preview-entry-name').textContent = entryFile.split('/').pop() || entryFile;
@@ -2900,6 +3002,54 @@ function updateScale(v) {
   const scale = v / 100;
   document.documentElement.style.setProperty('--scale', scale);
   document.getElementById('scaleVal').textContent = v + '%';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INSPECTOR DE ELEMENTOS (preview)
+// ═══════════════════════════════════════════════════════════
+let inspectorMode = false;
+let inspectorLastInfo = null;
+
+function toggleInspector() {
+  inspectorMode = !inspectorMode;
+  document.getElementById('btn-inspector').classList.toggle('active', inspectorMode);
+  const frame = document.getElementById('deviceIframe');
+  if (frame && frame.contentWindow) {
+    frame.contentWindow.postMessage({ __codeforge_inspector: inspectorMode }, '*');
+  }
+  const bar = document.getElementById('inspectorBar');
+  if (inspectorMode) {
+    document.getElementById('inspectorTagLabel').textContent = 'Toca un elemento en el preview…';
+    bar.classList.add('visible');
+    notify('🔍 Modo inspector activado · los clics dentro del preview ya no navegan', 'info');
+  } else {
+    bar.classList.remove('visible');
+    inspectorLastInfo = null;
+    notify('🔍 Modo inspector desactivado', 'info');
+  }
+}
+
+function _inspectorSelectorText(info) {
+  let s = info.tag;
+  if (info.id) s += '#' + info.id;
+  if (info.classes && info.classes.length) s += '.' + info.classes.join('.');
+  return s;
+}
+
+function showInspectorSelection(info) {
+  inspectorLastInfo = info;
+  const sel = _inspectorSelectorText(info);
+  document.getElementById('inspectorTagLabel').textContent = sel;
+  document.getElementById('inspectorBar').classList.add('visible');
+  addConsoleEntry('info', ['🔍 Elemento seleccionado: ' + sel]);
+}
+
+function copyInspectorSelector() {
+  if (!inspectorLastInfo) { notify('Aún no has seleccionado ningún elemento', 'info'); return; }
+  const sel = _inspectorSelectorText(inspectorLastInfo);
+  navigator.clipboard.writeText(sel)
+    .then(() => notify('📋 Copiado: ' + sel, 'success'))
+    .catch(() => notify('No se pudo copiar al portapapeles', 'error'));
 }
 
 // ═══════════════════════════════════════════════════════════
