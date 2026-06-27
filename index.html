@@ -1890,6 +1890,7 @@ function buildHtml(filePath) {
   const fileDir = filePath.includes('/') ? filePath.substring(0, filePath.lastIndexOf('/')) : '';
   let html = entry.rawText;
 
+  // --- ELIMINAR CSP (meta http-equiv) ---
   html = html.replace(/<meta[^>]*http-equiv\s*=\s*['"]Content-Security-Policy['"][^>]*>/gi, '');
 
   // 1. Viewport (solo si no existe)
@@ -1986,8 +1987,9 @@ function buildHtml(filePath) {
     }
   }
 
-  // 10. Inyectar shim de consola + enrutador
+  // 10. Inyectar shim de consola + enrutador (con logs y handshake)
   const injectedScript = `<script>
+console.log('[CodeForge] Script inyectado ejecutándose');
 (function(){
   /* ── Console bridge ── */
   function _send(type, args) {
@@ -2022,7 +2024,7 @@ function buildHtml(filePath) {
 
   function _describeEl(el) {
     var id = el.id || '';
-    var classes = (el.className && typeof el.className === 'string') ? el.className.trim().split(/\s+/).filter(Boolean) : [];
+    var classes = (el.className && typeof el.className === 'string') ? el.className.trim().split(/\\s+/).filter(Boolean) : [];
     return { tag: el.tagName.toLowerCase(), id: id, classes: classes };
   }
 
@@ -2052,6 +2054,7 @@ function buildHtml(filePath) {
   }, true);
 
   document.addEventListener('click', function(e) {
+    console.log('[Inspector] Click detectado, inspector activo:', _inspecting);
     if (!_inspecting) return;
     e.preventDefault();
     e.stopImmediatePropagation();
@@ -2104,7 +2107,7 @@ function buildHtml(filePath) {
       ? currentSrc.substring(0, currentSrc.lastIndexOf('/'))
       : '';
     if (path.startsWith('/')) base = '';
-    return _normalizePath(base + '/' + path.replace(/^\//, '')) + hash;
+    return _normalizePath(base + '/' + path.replace(/^\\//, '')) + hash;
   }
 
   document.addEventListener('click', function(e) {
@@ -2122,7 +2125,6 @@ function buildHtml(filePath) {
   }, true);
 
   // Capturar errores de red (fetch, XHR) — simplificado
-  // (se puede ampliar con más detalles, pero es suficiente)
   var _origFetch = window.fetch;
   window.fetch = function(url, opts) {
     var t0 = Date.now();
@@ -2135,7 +2137,10 @@ function buildHtml(filePath) {
       throw err;
     });
   };
-}());
+
+  // Notificar al padre que el iframe está listo
+  window.parent.postMessage({ __codeforge_ready: true, origin: 'iframe' }, '*');
+})();
 <\/script>`;
 
   if (html.includes('</head>')) {
@@ -2189,7 +2194,6 @@ window.addEventListener('message', (e) => {
     return;
   }
 });
-
 function navigateTo(path) {
   let url = processedPages.get(path);
   const pathNoHash = path.split('#')[0];
@@ -2207,9 +2211,11 @@ function navigateTo(path) {
   const iframe = document.getElementById('deviceIframe');
   const finalUrl = url + (path.includes('#') ? path.substring(path.indexOf('#')) : '');
   iframe.src = finalUrl;
-  iframe.onload = () => {
+  iframe.onload = function() {
     try { iframe.contentWindow.__currentPage = pathNoHash; } catch(e) {}
-    if (inspectorMode) iframe.contentWindow.postMessage({ __codeforge_inspector: true }, '*');
+    if (inspectorMode) {
+      iframe.contentWindow.postMessage({ __codeforge_inspector: true }, '*');
+    }
     iframe.onload = null;
   };
   document.getElementById('preview-entry-name').textContent = pathNoHash.split('/').pop() || pathNoHash;
@@ -2956,13 +2962,11 @@ function runPreview() {
     const entry = projectFiles.get(t.name);
     if (entry && entry.rawText !== undefined) {
       entry.rawText = t.content;
-      // Actualizar blob
       const newBlob = new Blob([t.content], { type: entry.type });
       const newUrl = URL.createObjectURL(newBlob);
       URL.revokeObjectURL(entry.url);
       entry.blob = newBlob;
       entry.url = newUrl;
-      // reemplazar en blobUrls
       const idx = blobUrls.indexOf(entry.url);
       if (idx === -1) blobUrls.push(newUrl);
     }
@@ -2986,9 +2990,24 @@ function runPreview() {
 
   const iframe = document.getElementById('deviceIframe');
   iframe.src = entryUrl;
-  iframe.onload = () => {
-    try { iframe.contentWindow.__currentPage = entryFile; } catch(e) {}
-    if (inspectorMode) iframe.contentWindow.postMessage({ __codeforge_inspector: true }, '*');
+  iframe.onload = function() {
+    try {
+      // Verificar que el script inyectado existe (solo para depuración)
+      const scripts = iframe.contentDocument.querySelectorAll('script');
+      console.log('[CodeForge] Scripts en el iframe:', scripts.length);
+      let found = false;
+      scripts.forEach(s => {
+        if (s.textContent && s.textContent.includes('_inspecting')) found = true;
+      });
+      if (!found) console.warn('[CodeForge] Script inspector NO encontrado');
+      else console.log('[CodeForge] Script inspector encontrado');
+    } catch(e) {
+      console.error('[CodeForge] Error al acceder al iframe:', e);
+    }
+    iframe.contentWindow.__currentPage = entryFile;
+    if (inspectorMode) {
+      iframe.contentWindow.postMessage({ __codeforge_inspector: true }, '*');
+    }
     iframe.onload = null;
   };
   document.getElementById('preview-entry-name').textContent = entryFile.split('/').pop() || entryFile;
@@ -3916,13 +3935,35 @@ function handleReplKey(e) {
 
 // Escuchar mensajes de la consola desde el iframe
 window.addEventListener('message', (e) => {
+  // Handshake: el iframe notifica que está listo
+  if (e.data && e.data.__codeforge_ready) {
+    console.log('[CodeForge] Iframe listo, reenviando estado inspector');
+    if (inspectorMode) {
+      const frame = document.getElementById('deviceIframe');
+      if (frame && frame.contentWindow) {
+        frame.contentWindow.postMessage({ __codeforge_inspector: true }, '*');
+      }
+    }
+    return;
+  }
+  // Logs de la consola
   if (e.data && e.data.__mobiledev) {
     addConsoleEntry(e.data.type, [e.data.msg]);
     return;
   }
-  if (e.data && e.data.__source === 'codeforge-repl') {
-    // Respuesta del REPL
-    addConsoleEntry('repl-out', [e.data.result], {});
+  if (e.data && e.data.__codeforge_inspect_select) {
+    showInspectorSelection(e.data.info);
+    return;
+  }
+  if (e.data && e.data.__mobiledev_navigate) {
+    navigateTo(e.data.path);
+    return;
+  }
+  if (e.data && e.data.__mobiledev_setpage) {
+    try {
+      document.getElementById('deviceIframe').contentWindow.__currentPage = e.data.path;
+    } catch(ex) {}
+    return;
   }
 });
 
