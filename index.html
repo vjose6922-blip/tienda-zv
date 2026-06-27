@@ -2062,6 +2062,7 @@ function buildHtml(filePath) {
     if (e.data && typeof e.data.__codeforge_inspector === 'boolean') {
       _ensureInspectorUI();
       _inspecting = e.data.__codeforge_inspector;
+      console.log('[inspector] mensaje recibido, activado =', _inspecting);
       document.documentElement.style.cursor = _inspecting ? 'crosshair' : '';
       if (!_inspecting) {
         _ovBox.style.display = 'none';
